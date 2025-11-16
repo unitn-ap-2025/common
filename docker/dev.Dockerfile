@@ -4,7 +4,7 @@ FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive LANG=C.UTF-8 LC_ALL=C.UTF-8
 
-ARG APT_PROFILES="base c"
+ARG APT_PROFILES="base common"
 
 COPY ops/apt /ops/apt
 
@@ -17,6 +17,15 @@ RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/
 ENV RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo PATH=/opt/cargo/bin:$PATH
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal && /opt/cargo/bin/rustup default stable && /opt/cargo/bin/rustup component add rustfmt clippy
+
+RUN wget -qO - 'https://proget.makedeb.org/debian-feeds/prebuilt-mpr.pub' \
+      | gpg --dearmor \
+      | tee /usr/share/keyrings/prebuilt-mpr-archive-keyring.gpg 1> /dev/null && \
+    echo "deb [arch=all,$(dpkg --print-architecture) signed-by=/usr/share/keyrings/prebuilt-mpr-archive-keyring.gpg] https://proget.makedeb.org prebuilt-mpr bookworm" \
+      > /etc/apt/sources.list.d/prebuilt-mpr.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends just && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace
 

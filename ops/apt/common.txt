@@ -1,1 +1,3 @@
-just
+build-essential
+gpg
+wget
