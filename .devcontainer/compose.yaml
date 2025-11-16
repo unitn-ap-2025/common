@@ -1,0 +1,13 @@
+services:
+  unitn-ap-common-dev:
+    build:
+      context: ..
+      dockerfile: docker/dev.Dockerfile
+    container_name: unitn-ap-common-dev
+    working_dir: /workspace
+    volumes:
+      - "..:/workspace"
+    command: >
+      bash -lc "
+        exec sleep infinity
+      "

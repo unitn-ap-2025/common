@@ -1,0 +1,16 @@
+{
+  "dockerComposeFile": "compose.yaml",
+  "service": "unitn-ap-common-dev",
+  "workspaceFolder": "/workspace",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "jeff-hykin.better-dockerfile-syntax",
+        "kokakiwi.vscode-just",
+        "rust-lang.rust-analyzer",
+        "swellaby.rust-pack",
+        "tamasfe.even-better-toml"
+      ]
+    }
+  }
+}
