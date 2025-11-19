@@ -1,5 +1,5 @@
 use crate::components::sunray::Sunray;
-#[allow(unused)]
+#[allow(dead_code)]
 pub struct EnergyCell {
     charge: bool,
 }
