@@ -8,7 +8,7 @@ This is where things actually work.
 
 Working in progress...
 
-### About the project:
+### About the project
 
 - [Main document](https://didatticaonline.unitn.it/dol/pluginfile.php/1983232/mod_resource/content/2/main.pdf)
 - [Protocol](https://didatticaonline.unitn.it/dol/pluginfile.php/1983233/mod_resource/content/2/protocol.pdf)
