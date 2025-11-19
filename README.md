@@ -104,7 +104,7 @@ To understand it, I will provide an easy example:
 > What's more, if you have a `justfile` like this:
 >
 > ```
-> # justfile
+> # /justfile
 >
 > fmt:
 >     cargo fmt
