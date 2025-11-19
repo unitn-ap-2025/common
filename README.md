@@ -41,7 +41,7 @@ For developing, VSCode with `devcontainer` is recommended. Steps as following ([
 
 To use `devcontainer` in RustRover, please check the official guide here:
 
-- [Dev Container overview - RustRover | Documentation](https://www.jetbrains.com/help/rust/connect-to-devcontainer.html)
+- [Dev Container overview - RustRover Documentation](https://www.jetbrains.com/help/rust/connect-to-devcontainer.html)
 
 > WARNING: Because I ([yifen9](https://github.com/yifen9)) don't use RustRover, I didn't justify it to suit RustRover's env, lacking of extensions for example, though it should work. If anyone has the motivation, please feel free to config [`/.devcontainer/devcontainer.json`](https://github.com/unitn-ap-2025/common/blob/main/.devcontainer/devcontainer.json).
 
