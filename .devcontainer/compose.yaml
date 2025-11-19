@@ -1,8 +1,6 @@
 services:
   unitn-ap-common-dev:
-    build:
-      context: ..
-      dockerfile: docker/dev.Dockerfile
+    image: ghcr.io/unitn-ap-2025/common-dev
     container_name: unitn-ap-common-dev
     working_dir: /workspace
     volumes:
