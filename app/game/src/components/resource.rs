@@ -133,7 +133,7 @@ pub mod resources {
         (Basic: [$($basic:ident),* $(,)?], Complex: [$($complex:ident),* $(,)?]) => {
 
             $(
-
+                #[derive(Debug)]
                 pub struct $basic { _private: () }
 
                 impl Display for $basic {
@@ -156,6 +156,7 @@ pub mod resources {
             )*
 
             $(
+                #[derive(Debug)]
                 pub struct $complex {
                     _private: (),
                 }
@@ -290,4 +291,194 @@ pub mod resources {
         Dolphin from Water + Life ,
         AIPartner from Robot +  Diamond
     );
+    // ... (End of your define_combination_rules! macro call)
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        // Adjust these imports based on where your files are located in the crate.
+        // Based on previous context, I assume:
+        use crate::components::energy_cell::EnergyCell;
+        use crate::components::sunray::Sunray;
+
+        // --- Helper to get a charged cell ---
+        fn get_charged_cell() -> EnergyCell {
+            let mut cell = EnergyCell::new();
+            // We use the real Sunray constructor now
+            cell.charge(Sunray::new());
+            cell
+        }
+
+        #[test]
+        fn test_generator_success() {
+            let mut generator = Generator::new();
+            let mut cell = get_charged_cell();
+
+            // 1. Add recipe
+            assert!(generator.add(BasicResourceType::Oxygen).is_ok());
+
+            // 2. Generate resource
+            let result = generator.make_oxygen(&mut cell);
+
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap().to_static_str(), "Oxygen");
+
+            // 3. Ensure cell is discharged
+            assert!(!cell.is_charged());
+        }
+
+        #[test]
+        fn test_generator_fail_no_charge() {
+            let mut generator = Generator::new();
+            let mut cell = EnergyCell::new(); // Not charged
+
+            generator.add(BasicResourceType::Oxygen).unwrap();
+
+            let result = generator.make_oxygen(&mut cell);
+
+            assert!(result.is_err());
+            assert_eq!(result.err().unwrap(), "EnergyCell not charged!");
+        }
+
+        #[test]
+        fn test_generator_fail_no_recipe() {
+            let generator = Generator::new(); // Empty, no recipes added
+            let mut cell = get_charged_cell();
+
+            // Try to make Oxygen without adding the recipe first
+            let result = generator.make_oxygen(&mut cell);
+
+            assert!(result.is_err());
+            assert!(result.err().unwrap().contains("there isn't a recipe for"));
+        }
+
+        #[test]
+        fn test_combinator_success() {
+            let mut generator = Generator::new();
+            let mut comb = Combinator::new();
+            let mut cell = get_charged_cell();
+
+            // Setup
+            generator.add(BasicResourceType::Oxygen).unwrap();
+            generator.add(BasicResourceType::Hydrogen).unwrap();
+            comb.add(ComplexResourceType::Water).unwrap();
+
+            let oxygen = generator.make_oxygen(&mut cell).unwrap();
+
+            // Recharge cell using real Sunray
+            cell.charge(Sunray::new());
+            let hydrogen = generator.make_hydrogen(&mut cell).unwrap();
+
+            // Test Combination: Water = Hydrogen + Oxygen
+            let result = comb.make_water(hydrogen, oxygen);
+
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap().to_static_str(), "Water");
+        }
+
+        #[test]
+        fn test_combinator_fail_no_recipe_returns_resources() {
+            let mut generator = Generator::new();
+            let comb = Combinator::new(); // No recipes added
+            let mut cell = get_charged_cell();
+
+            generator.add(BasicResourceType::Oxygen).unwrap();
+            generator.add(BasicResourceType::Hydrogen).unwrap();
+
+            let oxygen = generator.make_oxygen(&mut cell).unwrap();
+
+            cell.charge(Sunray::new());
+            let hydrogen = generator.make_hydrogen(&mut cell).unwrap();
+
+            // Attempt make_water without recipe
+            let result = comb.make_water(hydrogen, oxygen);
+
+            assert!(result.is_err());
+
+            // Critical: Ensure we got our resources back in the error tuple
+            let (_err_msg, returned_h, returned_o) = result.err().unwrap();
+
+            assert_eq!(returned_h.to_static_str(), "Hydrogen");
+            assert_eq!(returned_o.to_static_str(), "Oxygen");
+        }
+
+        #[test]
+        fn test_recipe_management() {
+            let mut generator = Generator::new();
+
+            assert!(generator.add(BasicResourceType::Carbon).is_ok());
+            assert!(generator.contains(BasicResourceType::Carbon));
+            assert!(!generator.contains(BasicResourceType::Silicon));
+
+            // Test duplicate addition error
+            assert!(generator.add(BasicResourceType::Carbon).is_err());
+        }
+
+        #[test]
+        fn test_enum_equality_and_hashing() {
+            let t1 = BasicResourceType::Oxygen;
+            let t2 = BasicResourceType::Oxygen;
+            let t3 = BasicResourceType::Carbon;
+
+            assert_eq!(t1, t2);
+            assert_ne!(t1, t3);
+
+            // Test Hashing implicitly via HashSet
+            let mut set = HashSet::new();
+            set.insert(BasicResourceType::Oxygen);
+            set.insert(BasicResourceType::Oxygen);
+            assert_eq!(set.len(), 1);
+        }
+
+        #[test]
+        fn test_complex_chain() {
+            // Tests a multi-step chain: Carbon + Carbon -> Diamond; Robot + Diamond -> AIPartner
+            let mut generator = Generator::new();
+            let mut comb = Combinator::new();
+            let mut cell = get_charged_cell();
+
+            // Add Recipes
+            generator.add(BasicResourceType::Carbon).unwrap();
+            generator.add(BasicResourceType::Silicon).unwrap();
+            generator.add(BasicResourceType::Oxygen).unwrap();
+            generator.add(BasicResourceType::Hydrogen).unwrap();
+
+            comb.add(ComplexResourceType::Diamond).unwrap();
+            comb.add(ComplexResourceType::Water).unwrap();
+            comb.add(ComplexResourceType::Life).unwrap();
+            comb.add(ComplexResourceType::Robot).unwrap();
+            comb.add(ComplexResourceType::AIPartner).unwrap();
+
+            // 1. Make Diamond (Carbon + Carbon)
+            let c1 = generator.make_carbon(&mut cell).unwrap();
+            cell.charge(Sunray::new());
+            let c2 = generator.make_carbon(&mut cell).unwrap();
+            let diamond = comb.make_diamond(c1, c2).unwrap();
+
+            // 2. Make Robot (Silicon + Life) -> Needs Life (Water + Carbon) -> Needs Water (H + O)
+
+            // Make Water
+            cell.charge(Sunray::new());
+            let h = generator.make_hydrogen(&mut cell).unwrap();
+            cell.charge(Sunray::new());
+            let o = generator.make_oxygen(&mut cell).unwrap();
+            let water = comb.make_water(h, o).unwrap();
+
+            // Make Life
+            cell.charge(Sunray::new());
+            let c3 = generator.make_carbon(&mut cell).unwrap();
+            let life = comb.make_life(water, c3).unwrap();
+
+            // Make Robot
+            cell.charge(Sunray::new());
+            let silicon = generator.make_silicon(&mut cell).unwrap();
+            let robot = comb.make_robot(silicon, life).unwrap();
+
+            // 3. Make AIPartner (Robot + Diamond)
+            let ai = comb.make_aipartner(robot, diamond);
+
+            assert!(ai.is_ok());
+            assert_eq!(ai.unwrap().to_static_str(), "AIPartner");
+        }
+    }
 }
