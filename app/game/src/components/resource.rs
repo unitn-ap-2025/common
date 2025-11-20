@@ -291,5 +291,3 @@ pub mod resources {
         AIPartner from Robot +  Diamond
     );
 }
-
-
