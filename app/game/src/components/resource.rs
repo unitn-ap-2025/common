@@ -252,9 +252,9 @@ pub mod resources {
             )*
 
             paste::paste! {
-                     ///
-                     /// Gives a structured way to pass around the request to produce a complex resource
-                     ///
+                 ///
+                 /// Gives a structured way to pass around the request to produce a complex resource
+                 ///
                 pub enum ComplexResourceRequest{
                      $([<$result >]( $lhs, $rhs ), )*
                 }
