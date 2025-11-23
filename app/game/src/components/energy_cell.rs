@@ -4,6 +4,12 @@ pub struct EnergyCell {
     charge: bool,
 }
 
+impl Default for EnergyCell {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[allow(dead_code)]
 impl EnergyCell {
     pub fn new() -> Self {
