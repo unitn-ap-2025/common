@@ -1,6 +1,7 @@
-mod asteroid;
-mod energy_cell;
-mod planet;
-mod resource;
-mod rocket;
-mod sunray;
+pub mod asteroid;
+pub mod energy_cell;
+pub mod planet;
+pub mod resource;
+
+pub mod rocket;
+pub mod sunray;
