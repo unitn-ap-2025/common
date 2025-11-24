@@ -1,7 +1,16 @@
 /// Represents an asteroid object, instanciable by the orchestrator.
 ///
-pub struct Asteroid;
+pub struct Asteroid {
+    _private: ()
+}
+
 #[allow(dead_code)]
+impl Default for Asteroid {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Asteroid {
     /// Creates a new, default instance of an [Asteroid].
     ///
@@ -12,6 +21,6 @@ impl Asteroid {
     ///
     /// Returns a new instance of [Asteroid].
    pub fn new() -> Asteroid {
-       Asteroid
+       Asteroid { _private: () }
    }
 }

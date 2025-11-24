@@ -41,6 +41,7 @@ pub enum OrchestratorToExplorer {
 
 pub struct ResetExplorerAIMsg;
 pub struct MoveToPlanet {
+    #[allow(unused)]
     sender_to_new_planet: mpsc::Sender<ExplorerToPlanet>,
 }
 pub struct CurrentPlanetRequest;
@@ -68,7 +69,9 @@ pub enum ExplorerToPlanet {
 
 pub struct GenerateResourceRequest;
 pub struct CombineResourceRequest {
+    #[allow(unused)]
     first: &'static str,
+    #[allow(unused)]
     second: &'static str,
 }
 
