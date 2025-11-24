@@ -1,22 +1,12 @@
 use crate::components::asteroid::Asteroid;
 use crate::components::sunray::Sunray;
+use crate::protocols::messages::{CombineResourceRequest, CurrentPlanetRequest, GenerateResourceRequest, MoveToPlanet, ResetExplorerAIMsg, StartPlanetAiMsg, StopPlanetAiMsg, SupportedCombinationRequest, SupportedResourceRequest};
 #[allow(unused)]
 use std::sync::mpsc;
 
 //Dummy definitions to avoid errors, waiting for other contractors to push their implementations
 struct Explorer;
 struct Planet;
-
-pub enum ExplorerToPlanet {
-    SupportedResourceRequest,
-    SupportedCombinationRequest,
-    GenerateResourceRequest,
-    CombineResourceRequest {
-        first: &'static str,
-        second: &'static str,
-    },
-    EnergyCellRequest,
-}
 
 // Marker trait for the galaxy abstraction.
 // This trait constraints the orchestrator to have a data structure that contains the galaxy information.
@@ -25,42 +15,9 @@ trait GalaxyTrait {}
 // Messages that the Orchestrator can send to a Planet.
 // Start/Stop AI have been wrapped in dedicated structs (StartPlanetAiMsg / StopPlanetAiMsg)
 // to constrain and clarify their signatures.
-enum OrchestratorToPlanet {
-    Sunray,
-    Asteroid,
-    StartPlanetAI(StartPlanetAiMsg),
-    StopPlanetAI(StopPlanetAiMsg),
-}
 
 // Using a struct instead of a bare enum variant argument gives us type-safety and
 // the possibility to extend this message later without changing the enum shape.
-struct StartPlanetAiMsg;
-struct StopPlanetAiMsg;
-
-// Messages that the Orchestrator can send to an Explorer.
-enum OrchestratorToExplorer {
-    ResetExplorerAI(ResetExplorerAIMsg),
-    MoveToPlanet(MoveToPlanet),
-    CurrentPlanetRequest(CurrentPlanetRequest),
-    SupportedResourceRequest(SupportedResourceRequest),
-    SupportedCombinationRequest(SupportedCombinationRequest),
-    GenerateResourceRequest(GenerateResourceRequest),
-    CombineResourceRequest(CombineResourceRequest),
-}
-
-struct ResetExplorerAIMsg;
-struct MoveToPlanet {
-    sender_to_new_planet: mpsc::Sender<ExplorerToPlanet>,
-}
-
-struct CurrentPlanetRequest;
-struct SupportedResourceRequest;
-struct SupportedCombinationRequest;
-struct GenerateResourceRequest;
-struct CombineResourceRequest {
-    first: &'static str,
-    second: &'static str,
-}
 
 trait OrchestratorTrait {
     // • Initializes planets (planet definitions are loaded from the galaxy initialization file).
