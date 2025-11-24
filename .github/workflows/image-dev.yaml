@@ -5,7 +5,7 @@ on:
     branches:
       - "main"
     paths:
-      - "docker/dev.Dockerfile"
+      - "docker/Dockerfile.dev"
       - "ops/apt/**"
       - ".github/workflows/image-dev.yaml"
   workflow_dispatch:
