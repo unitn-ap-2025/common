@@ -1,5 +1,5 @@
 {
-  "dockerComposeFile": "compose.yaml",
+  "dockerComposeFile": "docker-compose.yaml",
   "service": "unitn-ap-common-dev",
   "workspaceFolder": "/workspace",
   "customizations": {

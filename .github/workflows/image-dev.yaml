@@ -28,7 +28,7 @@ jobs:
       - uses: docker/build-push-action@master
         with:
           context: .
-          file: docker/dev.Dockerfile
+          file: docker/Dockerfile.dev
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/common-dev:latest
