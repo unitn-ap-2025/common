@@ -1,10 +1,11 @@
 //! # Communication protocol messages
 //!
 //! Defines the types of messages exchanged between the different
-//! components using [std::sync::mpsc] channels.
+//! components using [mpsc] channels.
 
 use std::sync::mpsc;
 use crate::components::asteroid::Asteroid;
+use crate::components::rocket::Rocket;
 use crate::components::sunray::Sunray;
 
 // TODO: this is just a draft! needs to be completed
@@ -23,7 +24,7 @@ pub struct StopPlanetAiMsg;
 /// Messages sent by a `Planet` to the `Orchestrator`.
 pub enum PlanetToOrchestrator {
     SunrayAck { planet_id: u32 },
-    AsteroidAck { planet_id: u32, destroyed: bool },
+    AsteroidAck { planet_id: u32, rocket: Option<Rocket> },
     StartPlanetAIResult { planet_id: u32, timestamp: u32 },
     StopPlanetAIResult { planet_id: u32, timestamp: u32 },
 }
