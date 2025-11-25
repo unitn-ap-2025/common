@@ -22,9 +22,13 @@ Working in progress...
 
 ### Permission
 
-- Only members from the team "[leader](https://github.com/orgs/unitn-ap-2025/teams/leader)" has the permission to contribute to this repo.
-- Members from the team "[reviewer](https://github.com/orgs/unitn-ap-2025/teams/reviewer)" has the permission to handle issues and PRs.
+- Team "[reviewer](https://github.com/orgs/unitn-ap-2025/teams/reviewer)": The permission role "write".
+- Team "[leader](https://github.com/orgs/unitn-ap-2025/teams/leader)": The permission role "Triage".
 - Members from other teams only have the permission to read.
+
+About permission role:
+
+- [Repository roles for an organization](https://docs.github.com/en/organizations/managing-user-access-to-your-organizations-repositories/managing-repository-roles/repository-roles-for-an-organization)
 
 ### Guide for Developer
 
