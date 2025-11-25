@@ -140,7 +140,3 @@ By default, `just` is included in the `devcontainer`, so once you have entered t
 A commit to the `main` branch will trigger the GitHub Action called `CI`, which will do the same as what the `just ci` will do locally. This is for ensuring the quality of the code.
 
 Please use `just ci` locally and make sure all green before committing any changes. Otherwise, the [![CI](https://github.com/unitn-ap-2025/common/actions/workflows/ci.yaml/badge.svg)](https://github.com/unitn-ap-2025/common/actions/workflows/ci.yaml) might fail, and the PR will be rejected.
-
-## Contacts
-
-This repo is currently maintained by [Li Yifeng](https://yifen9.li) ([yifen9](https://github.com/yifen9)).
