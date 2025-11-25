@@ -1,67 +1,26 @@
 use crate::components::asteroid::Asteroid;
 use crate::components::sunray::Sunray;
+use crate::components::planet::{Planet, PlanetAI};
+use crate::protocols::messages::{CombineResourceRequest, CurrentPlanetRequest, GenerateResourceRequest, MoveToPlanet, ResetExplorerAIMsg, StartPlanetAiMsg, StopPlanetAiMsg, SupportedCombinationRequest, SupportedResourceRequest};
 #[allow(unused)]
 use std::sync::mpsc;
 
 //Dummy definitions to avoid errors, waiting for other contractors to push their implementations
+#[allow(unused)]
 struct Explorer;
-struct Planet;
-
-pub enum ExplorerToPlanet {
-    SupportedResourceRequest,
-    SupportedCombinationRequest,
-    GenerateResourceRequest,
-    CombineResourceRequest {
-        first: &'static str,
-        second: &'static str,
-    },
-    EnergyCellRequest,
-}
 
 // Marker trait for the galaxy abstraction.
 // This trait constraints the orchestrator to have a data structure that contains the galaxy information.
+#[allow(unused)]
 trait GalaxyTrait {}
 
 // Messages that the Orchestrator can send to a Planet.
 // Start/Stop AI have been wrapped in dedicated structs (StartPlanetAiMsg / StopPlanetAiMsg)
 // to constrain and clarify their signatures.
-enum OrchestratorToPlanet {
-    Sunray,
-    Asteroid,
-    StartPlanetAI(StartPlanetAiMsg),
-    StopPlanetAI(StopPlanetAiMsg),
-}
 
 // Using a struct instead of a bare enum variant argument gives us type-safety and
 // the possibility to extend this message later without changing the enum shape.
-struct StartPlanetAiMsg;
-struct StopPlanetAiMsg;
-
-// Messages that the Orchestrator can send to an Explorer.
-enum OrchestratorToExplorer {
-    ResetExplorerAI(ResetExplorerAIMsg),
-    MoveToPlanet(MoveToPlanet),
-    CurrentPlanetRequest(CurrentPlanetRequest),
-    SupportedResourceRequest(SupportedResourceRequest),
-    SupportedCombinationRequest(SupportedCombinationRequest),
-    GenerateResourceRequest(GenerateResourceRequest),
-    CombineResourceRequest(CombineResourceRequest),
-}
-
-struct ResetExplorerAIMsg;
-struct MoveToPlanet {
-    sender_to_new_planet: mpsc::Sender<ExplorerToPlanet>,
-}
-
-struct CurrentPlanetRequest;
-struct SupportedResourceRequest;
-struct SupportedCombinationRequest;
-struct GenerateResourceRequest;
-struct CombineResourceRequest {
-    first: &'static str,
-    second: &'static str,
-}
-
+#[allow(unused)]
 trait OrchestratorTrait {
     // • Initializes planets (planet definitions are loaded from the galaxy initialization file).
     // Returns a type implementing GalaxyTrait, representing the logical galaxy abstraction.
@@ -71,7 +30,7 @@ trait OrchestratorTrait {
 
     // For now, we use a string from the initialization file to initialize every planet.
     // This matches the PDF’s notion that planet configuration is file-driven.
-    fn make_planet(&self, init_sting: String) -> Planet;
+    fn make_planet<T: PlanetAI>(&self, init_sting: String) -> Planet<T>;
 
     // Creates a new explorer.
     // In the PDF, explorers are also constructed and managed by the orchestrator.
