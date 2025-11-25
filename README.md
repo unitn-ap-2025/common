@@ -22,9 +22,13 @@ Working in progress...
 
 ### Permission
 
-- Only members from the team "[leader](https://github.com/orgs/unitn-ap-2025/teams/leader)" has the permission to contribute to this repo.
-- Members from the team "[reviewer](https://github.com/orgs/unitn-ap-2025/teams/reviewer)" has the permission to handle issues and PRs.
+- Team "[reviewer](https://github.com/orgs/unitn-ap-2025/teams/reviewer)": The permission role "write".
+- Team "[leader](https://github.com/orgs/unitn-ap-2025/teams/leader)": The permission role "Triage".
 - Members from other teams only have the permission to read.
+
+About permission role:
+
+- [Repository roles for an organization](https://docs.github.com/en/organizations/managing-user-access-to-your-organizations-repositories/managing-repository-roles/repository-roles-for-an-organization)
 
 ### Guide for Developer
 
@@ -136,7 +140,3 @@ By default, `just` is included in the `devcontainer`, so once you have entered t
 A commit to the `main` branch will trigger the GitHub Action called `CI`, which will do the same as what the `just ci` will do locally. This is for ensuring the quality of the code.
 
 Please use `just ci` locally and make sure all green before committing any changes. Otherwise, the [![CI](https://github.com/unitn-ap-2025/common/actions/workflows/ci.yaml/badge.svg)](https://github.com/unitn-ap-2025/common/actions/workflows/ci.yaml) might fail, and the PR will be rejected.
-
-## Contacts
-
-This repo is currently maintained by [Li Yifeng](https://yifen9.li) ([yifen9](https://github.com/yifen9)).
