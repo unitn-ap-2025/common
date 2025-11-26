@@ -245,9 +245,12 @@ pub mod resources {
         ($($result:ident from  $lhs:ident + $rhs:ident ),* $(,)?) => {
             $(
                 paste::paste! {
-                        fn [<  $result:lower _fn >] ( _r1: $lhs  , _r2: $rhs ) -> $result   {
-                            $result { _private: () }
-                       }
+                    fn [<  $result:lower _fn >] ( r1: $lhs  , r2: $rhs , energy_cell: &mut EnergyCell) ->  Result<$result, (String ,$lhs , $rhs ) >    {
+                        match energy_cell.discharge(){
+                            Ok(_) => Ok($result { _private: () }),
+                            Err(e) => Err( (e, r1, r2 )),
+                        }
+                   }
                 }
             )*
 
@@ -263,10 +266,10 @@ pub mod resources {
             impl Combinator {
                 paste::paste! {
                     $(
-                         pub fn [<make_ $result:lower>]  (&self, r1 :  $lhs  ,r2 : $rhs  ) -> Result<$result, (String, $lhs , $rhs )  > {
+                         pub fn [<make_ $result:lower>]  (&self, r1 :  $lhs  ,r2 : $rhs , energy_cell: &mut EnergyCell  ) -> Result<$result, (String, $lhs , $rhs )  > {
                              let c = ComplexResourceType::$result;
                             if let Some(_f_enum)  =  &self.set.get( &c ) {
-                                Ok( [<$result:lower _fn >](r1,r2))
+                                  [<$result:lower _fn >](r1,r2 , energy_cell )
                             } else {
                                Err((format!("there isn't a recipe for {:?}", c), r1 ,r2 ) )
                             }
@@ -370,7 +373,8 @@ pub mod resources {
             let hydrogen = generator.make_hydrogen(&mut cell).unwrap();
 
             // Test Combination: Water = Hydrogen + Oxygen
-            let result = comb.make_water(hydrogen, oxygen);
+            cell.charge(Sunray::new());
+            let result = comb.make_water(hydrogen, oxygen, &mut cell);
 
             assert!(result.is_ok());
             assert_eq!(result.unwrap().to_static_str(), "Water");
@@ -379,7 +383,7 @@ pub mod resources {
         #[test]
         fn test_combinator_fail_no_recipe_returns_resources() {
             let mut generator = Generator::new();
-            let comb = Combinator::new(); // No recipes added
+            let mut comb = Combinator::new(); // No recipes added
             let mut cell = get_charged_cell();
 
             generator.add(BasicResourceType::Oxygen).unwrap();
@@ -391,8 +395,12 @@ pub mod resources {
             let hydrogen = generator.make_hydrogen(&mut cell).unwrap();
 
             // Attempt make_water without recipe
-            let result = comb.make_water(hydrogen, oxygen);
+            let result = comb.make_water(hydrogen, oxygen , &mut cell);
 
+            assert!(result.is_err());
+            let (_s,r1,r2) = result.err().unwrap();
+            comb.add(ComplexResourceType::Water).unwrap();
+            let result = comb.make_water( r1, r2 , &mut cell);
             assert!(result.is_err());
 
             // Critical: Ensure we got our resources back in the error tuple
@@ -453,7 +461,8 @@ pub mod resources {
             let c1 = generator.make_carbon(&mut cell).unwrap();
             cell.charge(Sunray::new());
             let c2 = generator.make_carbon(&mut cell).unwrap();
-            let diamond = comb.make_diamond(c1, c2).unwrap();
+            cell.charge(Sunray::new());
+            let diamond = comb.make_diamond(c1, c2 ,&mut cell).unwrap();
 
             // 2. Make Robot (Silicon + Life) -> Needs Life (Water + Carbon) -> Needs Water (H + O)
 
@@ -462,20 +471,24 @@ pub mod resources {
             let h = generator.make_hydrogen(&mut cell).unwrap();
             cell.charge(Sunray::new());
             let o = generator.make_oxygen(&mut cell).unwrap();
-            let water = comb.make_water(h, o).unwrap();
+            cell.charge(Sunray::new());
+            let water = comb.make_water(h, o, &mut cell).unwrap();
 
             // Make Life
             cell.charge(Sunray::new());
             let c3 = generator.make_carbon(&mut cell).unwrap();
-            let life = comb.make_life(water, c3).unwrap();
+            cell.charge(Sunray::new());
+            let life = comb.make_life(water, c3, &mut cell).unwrap();
 
             // Make Robot
             cell.charge(Sunray::new());
             let silicon = generator.make_silicon(&mut cell).unwrap();
-            let robot = comb.make_robot(silicon, life).unwrap();
+            cell.charge(Sunray::new());
+            let robot = comb.make_robot(silicon, life, &mut cell).unwrap();
 
             // 3. Make AIPartner (Robot + Diamond)
-            let ai = comb.make_aipartner(robot, diamond);
+            cell.charge(Sunray::new());
+            let ai = comb.make_aipartner(robot, diamond, &mut cell);
 
             assert!(ai.is_ok());
             assert_eq!(ai.unwrap().to_static_str(), "AIPartner");
