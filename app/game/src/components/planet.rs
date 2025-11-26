@@ -1,7 +1,7 @@
 use std::sync::mpsc;
 
 use crate::components::energy_cell::EnergyCell;
-use crate::components::resource::resources::{BasicResourceType, Combinator, ComplexResourceType, Generator};
+use crate::components::resource::{BasicResourceType, Combinator, ComplexResourceType, Generator};
 use crate::components::rocket::Rocket;
 use crate::protocols::messages::{ExplorerToPlanet, OrchestratorToPlanet, PlanetToExplorer, PlanetToOrchestrator};
 
