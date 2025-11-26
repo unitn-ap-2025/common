@@ -8,7 +8,7 @@ use std::time::SystemTime;
 use crate::components::asteroid::Asteroid;
 use crate::components::rocket::Rocket;
 use crate::components::sunray::Sunray;
-use crate::components::resource::resources::{BasicResource, BasicResourceType, Combinator, ComplexResource, ComplexResourceType, GenericResource};
+use crate::components::resource::{BasicResource, BasicResourceType, Combinator, ComplexResource, ComplexResourceType, GenericResource};
 use crate::components::planet::PlanetState;
 
 //placeholder for the BagContentResponse
