@@ -264,9 +264,12 @@ macro_rules! define_combination_rules {
         ($($result:ident from  $lhs:ident + $rhs:ident ),* $(,)?) => {
             $(
                 paste::paste! {
-                        fn [<  $result:lower _fn >] ( _r1: $lhs  , _r2: $rhs ) -> $result   {
-                            $result { _private: () }
-                       }
+                    fn [<  $result:lower _fn >] ( r1: $lhs  , r2: $rhs , energy_cell: &mut EnergyCell) ->  Result<$result, (String ,$lhs , $rhs ) >    {
+                        match energy_cell.discharge(){
+                            Ok(_) => Ok($result { _private: () }),
+                            Err(e) => Err( (e, r1, r2 )),
+                        }
+                   }
                 }
             )*
 
@@ -283,10 +286,10 @@ macro_rules! define_combination_rules {
             impl Combinator {
                 paste::paste! {
                     $(
-                         pub fn [<make_ $result:lower>]  (&self, r1 :  $lhs  ,r2 : $rhs  ) -> Result<$result, (String, $lhs , $rhs )  > {
+                         pub fn [<make_ $result:lower>]  (&self, r1 :  $lhs  ,r2 : $rhs , energy_cell: &mut EnergyCell  ) -> Result<$result, (String, $lhs , $rhs )  > {
                              let c = ComplexResourceType::$result;
                             if let Some(_f_enum)  =  &self.set.get( &c ) {
-                                Ok( [<$result:lower _fn >](r1,r2))
+                                  [<$result:lower _fn >](r1,r2 , energy_cell )
                             } else {
                                Err((format!("there isn't a recipe for {:?}", c), r1 ,r2 ) )
                             }
@@ -389,18 +392,19 @@ mod tests {
         cell.charge(Sunray::new());
         let hydrogen = generator.make_hydrogen(&mut cell).unwrap();
 
-        // Test Combination: Water = Hydrogen + Oxygen
-        let result = comb.make_water(hydrogen, oxygen);
+            // Test Combination: Water = Hydrogen + Oxygen
+            cell.charge(Sunray::new());
+            let result = comb.make_water(hydrogen, oxygen, &mut cell);
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap().to_static_str(), "Water");
     }
 
-    #[test]
-    fn test_combinator_fail_no_recipe_returns_resources() {
-        let mut generator = Generator::new();
-        let comb = Combinator::new(); // No recipes added
-        let mut cell = get_charged_cell();
+        #[test]
+        fn test_combinator_fail_no_recipe_returns_resources() {
+            let mut generator = Generator::new();
+            let mut comb = Combinator::new(); // No recipes added
+            let mut cell = get_charged_cell();
 
         generator.add(BasicResourceType::Oxygen).unwrap();
         generator.add(BasicResourceType::Hydrogen).unwrap();
@@ -410,10 +414,14 @@ mod tests {
         cell.charge(Sunray::new());
         let hydrogen = generator.make_hydrogen(&mut cell).unwrap();
 
-        // Attempt make_water without recipe
-        let result = comb.make_water(hydrogen, oxygen);
+            // Attempt make_water without recipe
+            let result = comb.make_water(hydrogen, oxygen , &mut cell);
 
-        assert!(result.is_err());
+            assert!(result.is_err());
+            let (_s,r1,r2) = result.err().unwrap();
+            comb.add(ComplexResourceType::Water).unwrap();
+            let result = comb.make_water( r1, r2 , &mut cell);
+            assert!(result.is_err());
 
         // Critical: Ensure we got our resources back in the error tuple
         let (_err_msg, returned_h, returned_o) = result.err().unwrap();
@@ -450,54 +458,60 @@ mod tests {
         assert_eq!(set.len(), 1);
     }
 
-    #[test]
-    fn test_complex_chain() {
-        // Tests a multi-step chain: Carbon + Carbon -> Diamond; Robot + Diamond -> AIPartner
-        let mut generator = Generator::new();
-        let mut comb = Combinator::new();
-        let mut cell = get_charged_cell();
+        #[test]
+        fn test_complex_chain() {
+            // Tests a multi-step chain: Carbon + Carbon -> Diamond; Robot + Diamond -> AIPartner
+            let mut generator = Generator::new();
+            let mut comb = Combinator::new();
+            let mut cell = get_charged_cell();
 
-        // Add Recipes
-        generator.add(BasicResourceType::Carbon).unwrap();
-        generator.add(BasicResourceType::Silicon).unwrap();
-        generator.add(BasicResourceType::Oxygen).unwrap();
-        generator.add(BasicResourceType::Hydrogen).unwrap();
+            // Add Recipes
+            generator.add(BasicResourceType::Carbon).unwrap();
+            generator.add(BasicResourceType::Silicon).unwrap();
+            generator.add(BasicResourceType::Oxygen).unwrap();
+            generator.add(BasicResourceType::Hydrogen).unwrap();
 
-        comb.add(ComplexResourceType::Diamond).unwrap();
-        comb.add(ComplexResourceType::Water).unwrap();
-        comb.add(ComplexResourceType::Life).unwrap();
-        comb.add(ComplexResourceType::Robot).unwrap();
-        comb.add(ComplexResourceType::AIPartner).unwrap();
+            comb.add(ComplexResourceType::Diamond).unwrap();
+            comb.add(ComplexResourceType::Water).unwrap();
+            comb.add(ComplexResourceType::Life).unwrap();
+            comb.add(ComplexResourceType::Robot).unwrap();
+            comb.add(ComplexResourceType::AIPartner).unwrap();
 
-        // 1. Make Diamond (Carbon + Carbon)
-        let c1 = generator.make_carbon(&mut cell).unwrap();
-        cell.charge(Sunray::new());
-        let c2 = generator.make_carbon(&mut cell).unwrap();
-        let diamond = comb.make_diamond(c1, c2).unwrap();
+            // 1. Make Diamond (Carbon + Carbon)
+            let c1 = generator.make_carbon(&mut cell).unwrap();
+            cell.charge(Sunray::new());
+            let c2 = generator.make_carbon(&mut cell).unwrap();
+            cell.charge(Sunray::new());
+            let diamond = comb.make_diamond(c1, c2 ,&mut cell).unwrap();
 
-        // 2. Make Robot (Silicon + Life) -> Needs Life (Water + Carbon) -> Needs Water (H + O)
+            // 2. Make Robot (Silicon + Life) -> Needs Life (Water + Carbon) -> Needs Water (H + O)
 
-        // Make Water
-        cell.charge(Sunray::new());
-        let h = generator.make_hydrogen(&mut cell).unwrap();
-        cell.charge(Sunray::new());
-        let o = generator.make_oxygen(&mut cell).unwrap();
-        let water = comb.make_water(h, o).unwrap();
+            // Make Water
+            cell.charge(Sunray::new());
+            let h = generator.make_hydrogen(&mut cell).unwrap();
+            cell.charge(Sunray::new());
+            let o = generator.make_oxygen(&mut cell).unwrap();
+            cell.charge(Sunray::new());
+            let water = comb.make_water(h, o, &mut cell).unwrap();
 
-        // Make Life
-        cell.charge(Sunray::new());
-        let c3 = generator.make_carbon(&mut cell).unwrap();
-        let life = comb.make_life(water, c3).unwrap();
+            // Make Life
+            cell.charge(Sunray::new());
+            let c3 = generator.make_carbon(&mut cell).unwrap();
+            cell.charge(Sunray::new());
+            let life = comb.make_life(water, c3, &mut cell).unwrap();
 
-        // Make Robot
-        cell.charge(Sunray::new());
-        let silicon = generator.make_silicon(&mut cell).unwrap();
-        let robot = comb.make_robot(silicon, life).unwrap();
+            // Make Robot
+            cell.charge(Sunray::new());
+            let silicon = generator.make_silicon(&mut cell).unwrap();
+            cell.charge(Sunray::new());
+            let robot = comb.make_robot(silicon, life, &mut cell).unwrap();
 
-        // 3. Make AIPartner (Robot + Diamond)
-        let ai = comb.make_aipartner(robot, diamond);
+            // 3. Make AIPartner (Robot + Diamond)
+            cell.charge(Sunray::new());
+            let ai = comb.make_aipartner(robot, diamond, &mut cell);
 
-        assert!(ai.is_ok());
-        assert_eq!(ai.unwrap().to_static_str(), "AIPartner");
+            assert!(ai.is_ok());
+            assert_eq!(ai.unwrap().to_static_str(), "AIPartner");
+        }
     }
 }
