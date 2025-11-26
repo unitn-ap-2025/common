@@ -38,6 +38,7 @@ pub trait Bag<T> {
 /// Identifies a resource which could be both [`BasicResourceType`] and [`ComplexResourceType`]
 /// without actually containing the underlying resource,
 ///
+#[derive(Debug, Clone, Copy)]
 pub enum ResourceType {
     Basic(BasicResourceType),
     Complex(ComplexResourceType),
@@ -45,6 +46,7 @@ pub enum ResourceType {
 ///
 /// Contains a resource which could be both [`BasicResource`] and [`ComplexResource`]
 ///
+#[derive(Debug)]
 pub enum GenericResource {
     BasicResources(BasicResource),
     ComplexResources(ComplexResource),
@@ -63,6 +65,7 @@ impl Hash for BasicResourceType {
 }
 
 ///contains all the recipes available to a planet and enables the creation of complex resources
+#[derive(Debug)]
 pub struct Combinator {
     set: HashSet<ComplexResourceType>,
 }
@@ -103,6 +106,7 @@ impl Combinator {
 }
 
 ///contains all the recipes available to a planet and enables the creation of basic resources
+#[derive(Debug)]
 pub struct Generator {
     set: HashSet<BasicResourceType>,
 }
@@ -191,7 +195,7 @@ macro_rules! define_resources {
              /// Identifies a [`ComplexResource`]
              /// without actually containing the underlying resource,
              ///
-            #[derive(Debug,Clone, Eq)]
+            #[derive(Debug,Clone,Copy, Eq)]
             pub enum ComplexResourceType {
                 $($complex,)*
             }
@@ -216,6 +220,7 @@ macro_rules! define_resources {
              ///
              /// Gives the choice between every possible basic resource
              ///
+             #[derive(Debug)]
             pub enum BasicResource {
                 $($basic($basic),)*
             }
@@ -223,6 +228,7 @@ macro_rules! define_resources {
              ///
              /// Gives the choice between every possible complex resource
              ///
+             #[derive(Debug)]
             pub enum ComplexResource {
                 $($complex($complex),)*
             }
@@ -231,7 +237,7 @@ macro_rules! define_resources {
               /// Identifies a [`BasicResource`]
               /// without actually containing the underlying resource,
               ///
-            #[derive(Debug,Clone,Eq)]
+            #[derive(Debug,Clone,Copy,Eq)]
             pub enum BasicResourceType {
                 $($basic,)*
             }
@@ -268,6 +274,7 @@ macro_rules! define_combination_rules {
                  ///
                  /// Gives a structured way to pass around the request to produce a complex resource
                  ///
+                 #[derive(Debug)]
                 pub enum ComplexResourceRequest{
                      $([<$result >]( $lhs, $rhs ), )*
                 }
