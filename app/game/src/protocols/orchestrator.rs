@@ -1,18 +1,22 @@
 use crate::components::asteroid::Asteroid;
-use crate::components::sunray::Sunray;
 use crate::components::planet::{Planet, PlanetAI};
-use crate::protocols::messages::{CombineResourceRequest, CurrentPlanetRequest, GenerateResourceRequest, MoveToPlanet, ResetExplorerAIMsg, StartPlanetAiMsg, StopPlanetAiMsg, SupportedCombinationRequest, SupportedResourceRequest};
+use crate::components::sunray::Sunray;
+use crate::protocols::messages::{
+    CombineResourceRequest, CurrentPlanetRequest, GenerateResourceRequest, MoveToPlanet,
+    ResetExplorerAIMsg, StartPlanetAiMsg, StopPlanetAiMsg, SupportedCombinationRequest,
+    SupportedResourceRequest,
+};
 #[allow(unused)]
 use std::sync::mpsc;
 
 //Dummy definitions to avoid errors, waiting for other contractors to push their implementations
 #[allow(unused)]
-struct Explorer;
+pub struct Explorer;
 
 // Marker trait for the galaxy abstraction.
 // This trait constraints the orchestrator to have a data structure that contains the galaxy information.
 #[allow(unused)]
-trait GalaxyTrait {}
+pub trait GalaxyTrait {}
 
 // Messages that the Orchestrator can send to a Planet.
 // Start/Stop AI have been wrapped in dedicated structs (StartPlanetAiMsg / StopPlanetAiMsg)
@@ -21,7 +25,7 @@ trait GalaxyTrait {}
 // Using a struct instead of a bare enum variant argument gives us type-safety and
 // the possibility to extend this message later without changing the enum shape.
 #[allow(unused)]
-trait OrchestratorTrait {
+pub trait OrchestratorTrait {
     // • Initializes planets (planet definitions are loaded from the galaxy initialization file).
     // Returns a type implementing GalaxyTrait, representing the logical galaxy abstraction.
     fn initialize_galaxy(&mut self, path: &str) -> impl GalaxyTrait;
