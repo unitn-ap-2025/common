@@ -1,16 +1,19 @@
+
+//! # Resource Module
+//! Defines all basic and complex resources.
+//!
+//! Every resource has a struct and implements the resource trait.
+//!
+//! The primary public items for other modules are the [`Resource`] trait,
+//! the enums that aggregate the generated types, such as [`BasicResource`], [`ComplexResource`] and [`GenericResource`] for passing the actual [`Resource`] around and
+//! [`BasicResourceType`],[`ComplexResourceType`] and [`ResourceType`] for passing the names and acts like phantoms of a resource.
+//! There exist two structs [`Generator`] and [`Combinator`] which are given to the planet to generate and combine resources,
+//! these structs contain the signatures of the available recipes, these recipes are only updated in the constructor of the planet
+//! To generate of combinator resources use the available methods in either structs, these return a [Result]
+//! There exist an enum to pass around the request to the planet to generate a complex resource  [`ComplexResourceRequest`]
 #[allow(dead_code)]
 pub mod resources {
-    //! Defines all basic and complex resources.
-    //!
-    //! Every resource has a struct and implements the resource trait.
-    //!
-    //! The primary public items for other modules are the [`Resource`] trait,
-    //! the enums that aggregate the generated types, such as [`BasicResource`], [`ComplexResource`] and [`GenericResource`] for passing the actual [`Resource`] around and
-    //! [`BasicResourceType`],[`ComplexResourceType`] and [`ResourceType`] for passing the names and acts like phantoms of a resource.
-    //! There exist two structs [`Generator`] and [`Combinator`] which are given to the planet to generate and combine resources,
-    //! these structs contain the signatures of the available recipes, these recipes are only updated in the constructor of the planet
-    //! To generate of combinator resources use the available methods in either structs, these return a [Result]
-    //! There exist an enum to pass around the request to the planet to generate a complex resource  [`ComplexResourceRequest`]
+
     use crate::components::energy_cell::EnergyCell;
     use std::collections::HashSet;
     use std::fmt::Display;
@@ -21,6 +24,21 @@ pub mod resources {
     ///
     pub trait Resource: Display {
         fn to_static_str(&self) -> &'static str;
+    }
+
+    pub trait Bag<T> {
+        fn is_empty(&self) -> bool;
+        fn contains_complex(&self, complex: ComplexResourceType) -> bool;
+        fn contains_basic(&self, basic: BasicResourceType) -> bool;
+        fn contains(&self, generic: ResourceType) -> bool;
+        fn size(&self) -> u32;
+        fn capacity(&self) -> u32;
+        fn get_count(&self ,generic: ResourceType ) -> u32;
+        fn get_count_complex(&self ,complex: ComplexResourceType ) -> u32;
+        fn get_count_basic(&self ,basic: BasicResourceType ) -> u32;
+        ///this method serves the purpose to the expose the internal structure of the bag and is implementation dependent,
+        fn get_content(&self) -> T;
+
     }
 
     ///
@@ -50,6 +68,9 @@ pub mod resources {
             std::mem::discriminant(self).hash(state);
         }
     }
+    ///
+    /// contains all the recipes available to a planet and enables the creation of complex resources
+    ///
 
     pub struct Combinator {
         set: HashSet<ComplexResourceType>,
@@ -89,6 +110,9 @@ pub mod resources {
             self.set.iter().cloned().collect()
         }
     }
+    ///
+    /// contains all the recipes available to a planet and enables the creation of basic resources
+    ///
 
     pub struct Generator {
         set: HashSet<BasicResourceType>,
