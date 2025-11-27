@@ -46,11 +46,11 @@ jobs:
 
       - working-directory: common-docs
         env:
-          GIT_AUTHOR_NAME: github-actions[bot]
-          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
-          GIT_COMMITTER_NAME: github-actions[bot]
-          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          DOCS_PUSH_TOKEN: ${{ secrets.DOCS_PUSH_TOKEN }}
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${DOCS_PUSH_TOKEN}@github.com/unitn-ap-2025/common-docs.git
           if [ -n "$(git status --porcelain)" ]; then
             git add .
             git commit -m "Update docs from ${GITHUB_SHA}"
