@@ -6,6 +6,8 @@
 
 This is where things actually work.
 
+The [![Docs](https://github.com/unitn-ap-2025/common/actions/workflows/docs.yaml/badge.svg)](https://github.com/unitn-ap-2025/common/actions/workflows/docs.yaml) are available at [common-docs](https://unitn-ap-2025.github.io/common-docs).
+
 Working in progress...
 
 ### About the project
