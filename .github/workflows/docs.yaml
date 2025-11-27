@@ -54,8 +54,23 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${DOCS_PUSH_TOKEN}@github.com/unitn-ap-2025/common-docs.git
+          git fetch origin main || true
+          if git show-ref --verify --quiet refs/remotes/origin/main; then
+            if git show-ref --verify --quiet refs/heads/main; then
+              git checkout main
+            else
+              git checkout -b main
+            fi
+            git reset --hard origin/main
+          else
+            if git show-ref --verify --quiet refs/heads/main; then
+              git checkout main
+            else
+              git checkout -b main
+            fi
+          fi
+          git add .
           if [ -n "$(git status --porcelain)" ]; then
-            git add .
             git commit -m "Update docs from ${GITHUB_SHA}"
-            git push origin HEAD:main --force
+            git push origin main
           fi
