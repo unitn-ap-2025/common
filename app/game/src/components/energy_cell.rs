@@ -1,7 +1,13 @@
 use crate::components::sunray::Sunray;
-#[allow(unused)]
+#[allow(dead_code)]
 pub struct EnergyCell {
     charge: bool,
+}
+
+impl Default for EnergyCell {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[allow(dead_code)]
