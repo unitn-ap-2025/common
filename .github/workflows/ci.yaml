@@ -1,29 +1,19 @@
-name: Docs
+name: CI
 
 on:
   push:
     branches: [ main ]
-    paths:
-      - "app/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "justfile"
-  workflow_dispatch: {}
+  pull_request:
+    branches: [ main ]
 
 permissions:
   contents: read
 
-concurrency:
-  group: pages-docs-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  build-and-publish:
+  ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-        with:
-          persist-credentials: false
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
@@ -35,27 +25,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y just
 
-      - run: just doc
+      - name: Format
+        run: just fmt
 
-      - uses: actions/checkout@v6
-        with:
-          repository: unitn-ap-2025/common-docs
-          token: ${{ secrets.DOCS_PUSH_TOKEN }}
-          path: common-docs
-          persist-credentials: false
+      - name: Lint
+        run: just lint
 
-      - run: |
-          rsync -a --delete target/doc/ common-docs/
-
-      - working-directory: common-docs
-        env:
-          DOCS_PUSH_TOKEN: ${{ secrets.DOCS_PUSH_TOKEN }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin https://x-access-token:${DOCS_PUSH_TOKEN}@github.com/unitn-ap-2025/common-docs.git
-          if [ -n "$(git status --porcelain)" ]; then
-            git add .
-            git commit -m "Update docs from ${GITHUB_SHA}"
-            git push origin HEAD:main
-          fi
+      - name: Test
+        run: just test
