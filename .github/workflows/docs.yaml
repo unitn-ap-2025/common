@@ -44,9 +44,10 @@ jobs:
           path: common-docs
           persist-credentials: false
 
-      - run: |
+      - working-directory: common-docs
+        run: |
           mkdir -p docs
-          rsync -a --delete target/doc/ docs/
+          rsync -a --delete ../target/doc/ docs/
 
       - working-directory: common-docs
         env:
