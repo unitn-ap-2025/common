@@ -14,7 +14,7 @@
 //! how a planet "reacts" to the possible events or requests.
 //!
 //! ## Examples
-//! Intended usage:
+//! Intended usage (for planet definition, by groups):
 //!
 //! ```
 //! use std::sync::mpsc;
@@ -404,11 +404,12 @@ impl<T: PlanetAI> Planet<T> {
     /// See [PlanetAI] docs to know more about when handlers are invoked and how the planet reacts
     /// to the different messages.
     ///
-    /// This method is *blocking* and should be called by the orchestrator.
+    /// This method is *blocking* and should be called by the orchestrator in a separate thread.
     ///
-    /// # Panics
-    /// This method will panic if the orchestrator disconnects from one
-    /// of the 2 channels.
+    /// # Errors
+    /// This method should not return, but if it does, it returns an error message
+    /// describing the cause. For now, the only possible cause of error is orchestrator disconnection
+    /// from one of the channels.
     pub fn run(&mut self) -> Result<(), String> {
         // run the planet stopped by default
         // and wait for a StartPlanetAI message
@@ -441,7 +442,6 @@ impl<T: PlanetAI> Planet<T> {
                         })
                         .map_err(|_| "Orchestrator disconnected".to_string())?;
                 }
-
                 Ok(msg) => {
                     self.ai
                         .handle_orchestrator_msg(&mut self.state, msg)
@@ -451,7 +451,7 @@ impl<T: PlanetAI> Planet<T> {
                 }
 
                 Err(mpsc::TryRecvError::Disconnected) => {
-                    panic!("Orchestrator disconnected!")
+                    return Err("Orchestrator disconnected".to_string());
                 }
                 Err(mpsc::TryRecvError::Empty) => {}
             }
