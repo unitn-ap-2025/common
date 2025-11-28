@@ -38,17 +38,17 @@ pub trait OrchestratorTrait {
 
     // Creates a new explorer.
     // In the PDF, explorers are also constructed and managed by the orchestrator.
-    fn make_explorer() -> Explorer;
+    fn make_explorer(&self) -> Explorer;
 
     // • Distributes all channels and starts the game.
     // The orchestrator is responsible for wiring up all entities and communication links.
     fn start_game(path: &str) -> Self;
 
     // • Is the only Sunray constructor.
-    fn create_sunray() -> Sunray;
+    fn create_sunray(&self) -> Sunray;
 
     // • Is the only Asteroid constructor.
-    fn create_asteroid() -> Asteroid;
+    fn create_asteroid(&self) -> Asteroid;
 
     // Functions for Orchestrator → Planet.
     // These methods conceptually wrap sending an OrchestratorToPlanet message on the correct channel.
