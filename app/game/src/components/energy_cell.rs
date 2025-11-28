@@ -53,7 +53,10 @@ mod tests {
         let mut cell = EnergyCell::new();
         cell.charge(Sunray::new());
 
-        assert!(cell.is_charged(), "Cell should become charged after calling charge()");
+        assert!(
+            cell.is_charged(),
+            "Cell should become charged after calling charge()"
+        );
     }
 
     #[test]
@@ -62,8 +65,14 @@ mod tests {
         cell.charge(Sunray::new());
 
         let result = cell.discharge();
-        assert!(result.is_ok(), "Discharging a charged cell should return Ok");
-        assert!(!cell.is_charged(), "Cell should no longer be charged after discharge()");
+        assert!(
+            result.is_ok(),
+            "Discharging a charged cell should return Ok"
+        );
+        assert!(
+            !cell.is_charged(),
+            "Cell should no longer be charged after discharge()"
+        );
     }
 
     #[test]
@@ -71,7 +80,10 @@ mod tests {
         let mut cell = EnergyCell::new();
         let result = cell.discharge();
 
-        assert!(result.is_err(), "Discharging an empty cell should return Err");
+        assert!(
+            result.is_err(),
+            "Discharging an empty cell should return Err"
+        );
         assert_eq!(result.unwrap_err(), "EnergyCell not charged!");
     }
 }

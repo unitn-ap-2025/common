@@ -3,23 +3,22 @@ use std::sync::mpsc;
 use crate::components::energy_cell::EnergyCell;
 use crate::components::resource::{BasicResourceType, Combinator, ComplexResourceType, Generator};
 use crate::components::rocket::Rocket;
-use crate::protocols::messages::{ExplorerToPlanet, OrchestratorToPlanet, PlanetToExplorer, PlanetToOrchestrator};
+use crate::protocols::messages::{
+    ExplorerToPlanet, OrchestratorToPlanet, PlanetToExplorer, PlanetToOrchestrator,
+};
 
 pub trait PlanetAI {
     fn handle_orchestrator_msg(
         &mut self,
         state: &mut PlanetState,
-        msg: OrchestratorToPlanet
+        msg: OrchestratorToPlanet,
     ) -> Option<PlanetToOrchestrator>;
     fn handle_explorer_msg(
         &mut self,
         state: &mut PlanetState,
-        msg: ExplorerToPlanet
+        msg: ExplorerToPlanet,
     ) -> Option<PlanetToExplorer>;
-    fn handle_asteroid(
-        &mut self,
-        state: &mut PlanetState,
-    ) -> Option<Rocket>;
+    fn handle_asteroid(&mut self, state: &mut PlanetState) -> Option<Rocket>;
     fn start(&mut self, state: &PlanetState);
     fn stop(&mut self);
 }
@@ -29,7 +28,7 @@ pub enum PlanetType {
     A,
     B,
     C,
-    D
+    D,
 }
 
 impl PlanetType {
@@ -41,7 +40,7 @@ impl PlanetType {
             PlanetType::A => (Self::N_ENERGY_CELLS, false, true, 0),
             PlanetType::B => (1, true, false, 1),
             PlanetType::C => (1, false, true, Self::N_RESOURCE_COMB_RULES),
-            PlanetType::D => (Self::N_ENERGY_CELLS, true, false, 0)
+            PlanetType::D => (Self::N_ENERGY_CELLS, true, false, 0),
         }
     }
 }
@@ -64,7 +63,7 @@ impl PlanetState {
         &self.energy_cells[i]
     }
 
-    pub fn cell_mut(&mut self, i: usize) ->&mut EnergyCell {
+    pub fn cell_mut(&mut self, i: usize) -> &mut EnergyCell {
         &mut self.energy_cells[i]
     }
 
@@ -105,24 +104,31 @@ impl<T: PlanetAI> Planet<T> {
         ai: T,
         gen_rules: Vec<BasicResourceType>,
         comb_rules: Vec<ComplexResourceType>,
-        orchestrator_channels: (mpsc::Receiver<OrchestratorToPlanet>, mpsc::Sender<PlanetToOrchestrator>),
-        explorer_channels: (mpsc::Receiver<ExplorerToPlanet>, mpsc::Sender<PlanetToExplorer>),
+        orchestrator_channels: (
+            mpsc::Receiver<OrchestratorToPlanet>,
+            mpsc::Sender<PlanetToOrchestrator>,
+        ),
+        explorer_channels: (
+            mpsc::Receiver<ExplorerToPlanet>,
+            mpsc::Sender<PlanetToExplorer>,
+        ),
     ) -> Result<Planet<T>, String> {
-        let (
-            n_energy_cells,
-            gen_rules_unbounded,
-            has_rocket,
-            n_comb_rules
-        ) = planet_type.values();
+        let (n_energy_cells, gen_rules_unbounded, has_rocket, n_comb_rules) = planet_type.values();
         let (from_orchestrator, to_orchestrator) = orchestrator_channels;
         let (from_explorer, to_explorer) = explorer_channels;
 
         if gen_rules.is_empty() {
             Err("gen_rules is empty".to_string())
         } else if !gen_rules_unbounded && gen_rules.len() > 1 {
-            Err(format!("Too many generation rules (Planet type {:?} is limited to 1)", planet_type))
+            Err(format!(
+                "Too many generation rules (Planet type {:?} is limited to 1)",
+                planet_type
+            ))
         } else if comb_rules.len() > n_comb_rules {
-            Err(format!("Too many combination rules (Planet type {:?} is limited to {})", planet_type, n_comb_rules))
+            Err(format!(
+                "Too many combination rules (Planet type {:?} is limited to {})",
+                planet_type, n_comb_rules
+            ))
         } else {
             let mut generator = Generator::new();
             let mut combinator = Combinator::new();
@@ -149,7 +155,7 @@ impl<T: PlanetAI> Planet<T> {
                 from_orchestrator,
                 to_orchestrator,
                 from_explorer,
-                to_explorer
+                to_explorer,
             })
         }
     }
@@ -170,20 +176,25 @@ impl<T: PlanetAI> Planet<T> {
 
                     // restart AI
                     self.ai.start(&self.state)
-                },
+                }
                 Ok(OrchestratorToPlanet::Asteroid(_)) => {
                     let rocket = self.ai.handle_asteroid(&mut self.state);
-                    self.to_orchestrator.send(PlanetToOrchestrator::AsteroidAck { planet_id: self.state.id(), rocket }).unwrap()
+                    self.to_orchestrator
+                        .send(PlanetToOrchestrator::AsteroidAck {
+                            planet_id: self.state.id(),
+                            rocket,
+                        })
+                        .unwrap()
                 }
                 Ok(msg) => {
                     if let Some(response) = self.ai.handle_orchestrator_msg(&mut self.state, msg) {
                         self.to_orchestrator.send(response).unwrap()
                     }
-                },
+                }
 
                 Err(mpsc::TryRecvError::Disconnected) => {
                     panic!("Orchestrator disconnected")
-                },
+                }
                 Err(mpsc::TryRecvError::Empty) => {}
             }
 
@@ -193,11 +204,11 @@ impl<T: PlanetAI> Planet<T> {
                     if let Some(response) = self.ai.handle_explorer_msg(&mut self.state, msg) {
                         self.to_explorer.send(response).unwrap()
                     }
-                },
+                }
 
                 Err(mpsc::TryRecvError::Disconnected) => {
                     println!("Explorer disconnected")
-                },
+                }
                 Err(mpsc::TryRecvError::Empty) => {}
             }
         }
@@ -215,7 +226,9 @@ impl<T: PlanetAI> Planet<T> {
         loop {
             let msg = self.from_orchestrator.recv().unwrap();
             // TODO: do something with the StartPlanetAI message content
-            if let OrchestratorToPlanet::StartPlanetAI(_) = msg { break }
+            if let OrchestratorToPlanet::StartPlanetAI(_) = msg {
+                break;
+            }
         }
     }
 }
