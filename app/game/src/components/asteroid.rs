@@ -1,7 +1,7 @@
 /// Represents an asteroid object, instanciable by the orchestrator.
 ///
 pub struct Asteroid {
-    _private: ()
+    _private: (),
 }
 
 #[allow(dead_code)]
@@ -20,7 +20,7 @@ impl Asteroid {
     /// # Returns
     ///
     /// Returns a new instance of [Asteroid].
-   pub fn new() -> Asteroid {
-       Asteroid { _private: () }
-   }
+    pub fn new() -> Asteroid {
+        Asteroid { _private: () }
+    }
 }
