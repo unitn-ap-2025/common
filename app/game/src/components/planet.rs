@@ -85,7 +85,9 @@ use std::sync::mpsc;
 use crate::components::energy_cell::EnergyCell;
 use crate::components::resource::{BasicResourceType, Combinator, ComplexResourceType, Generator};
 use crate::components::rocket::Rocket;
-use crate::protocols::messages::{ExplorerToPlanet, OrchestratorToPlanet, PlanetToExplorer, PlanetToOrchestrator};
+use crate::protocols::messages::{
+    ExplorerToPlanet, OrchestratorToPlanet, PlanetToExplorer, PlanetToOrchestrator,
+};
 
 /// The trait that defines the behaviour of a planet.
 ///
@@ -109,7 +111,7 @@ pub trait PlanetAI {
     fn handle_orchestrator_msg(
         &mut self,
         state: &mut PlanetState,
-        msg: OrchestratorToPlanet
+        msg: OrchestratorToPlanet,
     ) -> Option<PlanetToOrchestrator>;
 
     /// Handler for **all** messages received by an explorer (receiving
@@ -119,7 +121,7 @@ pub trait PlanetAI {
     fn handle_explorer_msg(
         &mut self,
         state: &mut PlanetState,
-        msg: ExplorerToPlanet
+        msg: ExplorerToPlanet,
     ) -> Option<PlanetToExplorer>;
 
     /// This handler will be invoked when a [OrchestratorToPlanet::Asteroid]
@@ -129,10 +131,7 @@ pub trait PlanetAI {
     /// # Returns
     /// In order to survive, an owned [Rocket] **must** be returned from this method;
     /// if `None` is returned instead, the planet will (or *should*) be **destroyed** by the orchestrator
-    fn handle_asteroid(
-        &mut self,
-        state: &mut PlanetState,
-    ) -> Option<Rocket>;
+    fn handle_asteroid(&mut self, state: &mut PlanetState) -> Option<Rocket>;
 
     /// This method will be invoked when a [OrchestratorToPlanet::StartPlanetAI]
     /// is received, but **only if** the planet is currently in a *stopped* state.
@@ -151,8 +150,8 @@ pub trait PlanetAI {
 struct PlanetConstraints {
     n_energy_cells: usize,
     unbounded_gen_rules: bool,
-    has_rocket: bool,
-    n_comb_rules: usize
+    can_have_rocket: bool,
+    n_comb_rules: usize,
 }
 
 /// Planet types definitions, intended to be passed
@@ -163,7 +162,7 @@ pub enum PlanetType {
     A,
     B,
     C,
-    D
+    D,
 }
 
 impl PlanetType {
@@ -177,27 +176,27 @@ impl PlanetType {
             PlanetType::A => PlanetConstraints {
                 n_energy_cells: Self::N_ENERGY_CELLS,
                 unbounded_gen_rules: false,
-                has_rocket: true,
+                can_have_rocket: true,
                 n_comb_rules: 0,
             },
             PlanetType::B => PlanetConstraints {
                 n_energy_cells: 1,
                 unbounded_gen_rules: true,
-                has_rocket: false,
+                can_have_rocket: false,
                 n_comb_rules: 1,
             },
             PlanetType::C => PlanetConstraints {
                 n_energy_cells: 1,
                 unbounded_gen_rules: false,
-                has_rocket: true,
+                can_have_rocket: true,
                 n_comb_rules: Self::N_RESOURCE_COMB_RULES,
             },
             PlanetType::D => PlanetConstraints {
                 n_energy_cells: Self::N_ENERGY_CELLS,
                 unbounded_gen_rules: true,
-                has_rocket: false,
+                can_have_rocket: false,
                 n_comb_rules: 0,
-            }
+            },
         }
     }
 }
@@ -210,14 +209,20 @@ impl PlanetType {
 /// - [Generator] for generating basic resources.
 /// - [Combinator] for combining basic resources into complex ones.
 pub struct PlanetState {
+    id: u32,
     energy_cells: Vec<EnergyCell>,
     rocket: Option<Rocket>,
     pub generator: Generator,
     pub combinator: Combinator,
-    has_rocket: bool,
+    can_have_rocket: bool,
 }
 
 impl PlanetState {
+    /// Returns the planet id.
+    pub fn id(&self) -> u32 {
+        self.id
+    }
+
     /// Indexed getter accessor for the [EnergyCell] vec.
     ///
     /// # Returns
@@ -238,7 +243,7 @@ impl PlanetState {
     /// # Panics
     /// This method will panic if the index `i` is out of bounds.
     /// Always check the number of energy cells available with [cells_count].
-    pub fn cell_mut(&mut self, i: usize) ->&mut EnergyCell {
+    pub fn cell_mut(&mut self, i: usize) -> &mut EnergyCell {
         &mut self.energy_cells[i]
     }
 
@@ -259,6 +264,11 @@ impl PlanetState {
         self.energy_cells.iter_mut()
     }
 
+    /// Returns `true` if the planet can have a rocket.
+    pub fn can_have_rocket(&self) -> bool {
+        self.can_have_rocket
+    }
+
     /// Returns `true` if the planet has a rocket built and ready to launch.
     pub fn has_rocket(&self) -> bool {
         self.rocket.is_some()
@@ -270,20 +280,19 @@ impl PlanetState {
         self.rocket.take()
     }
 
-    /// Constructs a rocket and stores it inside the planet state.
-    /// Takes a charged [EnergyCell].
+    /// Constructs a rocket using the *i-th* [EnergyCell] of the planet and stores it
+    /// inside the planet, taking ownership of it.
     ///
     /// # Errors
-    /// Returns an error if `energy_cell` is not charged.
-    pub fn build_rocket(&mut self, energy_cell: &mut EnergyCell) -> Result<(), String> {
-        if self.has_rocket {
-            // Try to construct a rocket, this will return an error
-            // if the energy_cell is not charged
+    /// Returns an error if the planet type prohibits the storing of rockets.
+    pub fn build_rocket(&mut self, i: usize) -> Result<(), String> {
+        if self.can_have_rocket {
+            let energy_cell = self.cell_mut(i);
             Rocket::new(energy_cell).map(|rocket| {
                 self.rocket = Some(rocket);
             })
         } else {
-            Err("This planet type can't build rockets.".to_string())
+            Err("This planet type can't have rockets.".to_string())
         }
     }
 }
@@ -297,7 +306,6 @@ impl PlanetState {
 ///
 /// See module-level docs for more general info.
 pub struct Planet<T: PlanetAI> {
-    id: u32,
     state: PlanetState,
     planet_type: PlanetType,
     pub ai: T,
@@ -330,11 +338,20 @@ impl<T: PlanetAI> Planet<T> {
         ai: T,
         gen_rules: Vec<BasicResourceType>,
         comb_rules: Vec<ComplexResourceType>,
-        orchestrator_channels: (mpsc::Receiver<OrchestratorToPlanet>, mpsc::Sender<PlanetToOrchestrator>),
-        explorer_channels: (mpsc::Receiver<ExplorerToPlanet>, mpsc::Sender<PlanetToExplorer>),
+        orchestrator_channels: (
+            mpsc::Receiver<OrchestratorToPlanet>,
+            mpsc::Sender<PlanetToOrchestrator>,
+        ),
+        explorer_channels: (
+            mpsc::Receiver<ExplorerToPlanet>,
+            mpsc::Sender<PlanetToExplorer>,
+        ),
     ) -> Result<Planet<T>, String> {
         let PlanetConstraints {
-            n_energy_cells, unbounded_gen_rules, has_rocket, n_comb_rules
+            n_energy_cells,
+            unbounded_gen_rules,
+            can_have_rocket,
+            n_comb_rules,
         } = planet_type.constraints();
         let (from_orchestrator, to_orchestrator) = orchestrator_channels;
         let (from_explorer, to_explorer) = explorer_channels;
@@ -342,22 +359,32 @@ impl<T: PlanetAI> Planet<T> {
         if gen_rules.is_empty() {
             Err("gen_rules is empty".to_string())
         } else if !unbounded_gen_rules && gen_rules.len() > 1 {
-            Err(format!("Too many generation rules (Planet type {:?} is limited to 1)", planet_type))
+            Err(format!(
+                "Too many generation rules (Planet type {:?} is limited to 1)",
+                planet_type
+            ))
         } else if comb_rules.len() > n_comb_rules {
-            Err(format!("Too many combination rules (Planet type {:?} is limited to {})", planet_type, n_comb_rules))
+            Err(format!(
+                "Too many combination rules (Planet type {:?} is limited to {})",
+                planet_type, n_comb_rules
+            ))
         } else {
             let mut generator = Generator::new();
             let mut combinator = Combinator::new();
 
             // add gen and comb rules to the planet generator and combinator
-            for r in gen_rules { let _ = generator.add(r); }
-            for r in comb_rules { let _ = combinator.add(r); }
+            for r in gen_rules {
+                let _ = generator.add(r);
+            }
+            for r in comb_rules {
+                let _ = combinator.add(r);
+            }
 
             Ok(Planet {
-                id,
                 state: PlanetState {
+                    id,
                     energy_cells: (0..n_energy_cells).map(|_| EnergyCell::new()).collect(),
-                    has_rocket,
+                    can_have_rocket,
                     rocket: None,
                     generator,
                     combinator,
@@ -367,7 +394,7 @@ impl<T: PlanetAI> Planet<T> {
                 from_orchestrator,
                 to_orchestrator,
                 from_explorer,
-                to_explorer
+                to_explorer,
             })
         }
     }
@@ -382,10 +409,11 @@ impl<T: PlanetAI> Planet<T> {
     /// # Panics
     /// This method will panic if the orchestrator disconnects from one
     /// of the 2 channels.
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> Result<(), String> {
         // run the planet stopped by default
         // and wait for a StartPlanetAI message
-        self.wait_for_start();
+        self.wait_for_start()?;
+
         self.ai.start(&self.state);
 
         // maybe spawn a thread for async event handling ?
@@ -399,21 +427,27 @@ impl<T: PlanetAI> Planet<T> {
                 // TODO: do something with the StopPlanetAI message content
                 Ok(OrchestratorToPlanet::StopPlanetAI(_)) => {
                     self.ai.stop(&self.state);
-                    self.wait_for_start(); // blocking wait
+                    self.wait_for_start()?; // blocking wait
 
                     // restart AI
                     self.ai.start(&self.state)
                 }
                 Ok(OrchestratorToPlanet::Asteroid(_)) => {
-                    // try to
                     let rocket = self.ai.handle_asteroid(&mut self.state);
-                    self.to_orchestrator.send(PlanetToOrchestrator::AsteroidAck { planet_id: self.id(), rocket })
-                        .unwrap_or_else(|_| panic!("Orchestrator disconnected!"))
+                    self.to_orchestrator
+                        .send(PlanetToOrchestrator::AsteroidAck {
+                            planet_id: self.id(),
+                            rocket,
+                        })
+                        .map_err(|_| "Orchestrator disconnected".to_string())?;
                 }
+
                 Ok(msg) => {
-                    if let Some(response) = self.ai.handle_orchestrator_msg(&mut self.state, msg) {
-                        self.to_orchestrator.send(response).unwrap_or_else(|_| panic!("Orchestrator disconnected!"))
-                    }
+                    self.ai
+                        .handle_orchestrator_msg(&mut self.state, msg)
+                        .map(|response| self.to_orchestrator.send(response))
+                        .transpose()
+                        .map_err(|_| "Orchestrator disconnected".to_string())?;
                 }
 
                 Err(mpsc::TryRecvError::Disconnected) => {
@@ -426,13 +460,13 @@ impl<T: PlanetAI> Planet<T> {
             match self.from_explorer.try_recv() {
                 Ok(msg) => {
                     if let Some(response) = self.ai.handle_explorer_msg(&mut self.state, msg) {
-                        self.to_explorer.send(response).unwrap()
+                        self.to_explorer
+                            .send(response)
+                            .unwrap_or_else(|_| println!("No explorer connected!"))
                     }
                 }
 
-                Err(mpsc::TryRecvError::Disconnected) => {
-                    println!("Explorer disconnected")
-                }
+                Err(mpsc::TryRecvError::Disconnected) => {}
                 Err(mpsc::TryRecvError::Empty) => {}
             }
         }
@@ -440,18 +474,22 @@ impl<T: PlanetAI> Planet<T> {
 
     // private helper function that blocks until
     // a StartPlanetAI message is received
-    fn wait_for_start(&self) {
+    fn wait_for_start(&self) -> Result<(), String> {
         loop {
             // TODO: error handling
-            let msg = self.from_orchestrator.recv().unwrap();
-            // TODO: do something with the StartPlanetAI message content
-            if let OrchestratorToPlanet::StartPlanetAI(_) = msg { break }
+            let recv_re = self.from_orchestrator.recv();
+            match recv_re {
+                // TODO: do something with the StartPlanetAI message content
+                Ok(OrchestratorToPlanet::StartPlanetAI(_)) => return Ok(()),
+                Err(_) => return Err("Orchestrator disconnected!".to_string()),
+                _ => {}
+            }
         }
     }
 
     /// Returns the planet id.
     pub fn id(&self) -> u32 {
-        self.id
+        self.state.id
     }
 
     /// Returns the planet type.
@@ -462,5 +500,284 @@ impl<T: PlanetAI> Planet<T> {
     /// Returns an immutable borrow the planet internal state.
     pub fn state(&self) -> &PlanetState {
         &self.state
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::mpsc;
+    use std::thread;
+    use std::time::{Duration, SystemTime};
+
+    use crate::components::asteroid::Asteroid;
+    use crate::components::energy_cell::EnergyCell;
+    use crate::components::resource::{BasicResourceType, Combinator, Generator};
+    use crate::components::rocket::Rocket;
+    use crate::components::sunray::Sunray;
+    use crate::protocols::messages::{
+        ExplorerToPlanet, OrchestratorToPlanet, PlanetToExplorer, PlanetToOrchestrator,
+        StartPlanetAiMsg, StopPlanetAiMsg,
+    };
+
+    // --- Mock AI ---
+    struct MockAI {
+        start_called: bool,
+        stop_called: bool,
+        sunray_count: u32,
+    }
+
+    impl MockAI {
+        fn new() -> Self {
+            Self {
+                start_called: false,
+                stop_called: false,
+                sunray_count: 0,
+            }
+        }
+    }
+
+    impl PlanetAI for MockAI {
+        fn handle_orchestrator_msg(
+            &mut self,
+            state: &mut PlanetState,
+            msg: OrchestratorToPlanet,
+        ) -> Option<PlanetToOrchestrator> {
+            match msg {
+                OrchestratorToPlanet::Sunray(s) => {
+                    self.sunray_count += 1;
+                    if let Some(cell) = state.cells_iter_mut().next() {
+                        cell.charge(s);
+                    }
+                    Some(PlanetToOrchestrator::SunrayAck {
+                        planet_id: state.id(),
+                        timestamp: SystemTime::now(),
+                    })
+                }
+                _ => None,
+            }
+        }
+
+        fn handle_explorer_msg(
+            &mut self,
+            _state: &mut PlanetState,
+            _msg: ExplorerToPlanet,
+        ) -> Option<PlanetToExplorer> {
+            None
+        }
+
+        fn handle_asteroid(&mut self, state: &mut PlanetState) -> Option<Rocket> {
+            if let Some(idx) = state.cells_iter().position(|c| c.is_charged()) {
+                if state.build_rocket(idx).is_ok() {
+                    return state.take_rocket();
+                }
+            }
+            None
+        }
+
+        fn start(&mut self, _state: &PlanetState) {
+            self.start_called = true;
+        }
+
+        fn stop(&mut self, _state: &PlanetState) {
+            self.stop_called = true;
+        }
+    }
+
+    // --- Helper for creating dummy channels ---
+    // Returns the halves required by Planet::new
+    type OrchChannels = (
+        mpsc::Receiver<OrchestratorToPlanet>,
+        mpsc::Sender<PlanetToOrchestrator>,
+    );
+    type ExplChannels = (
+        mpsc::Receiver<ExplorerToPlanet>,
+        mpsc::Sender<PlanetToExplorer>,
+    );
+
+    fn get_test_channels() -> (OrchChannels, ExplChannels) {
+        // Channel 1: Orchestrator -> Planet
+        let (_tx_orch_in, rx_orch_in) = mpsc::channel::<OrchestratorToPlanet>();
+        // Channel 2: Planet -> Orchestrator
+        let (tx_orch_out, _rx_orch_out) = mpsc::channel::<PlanetToOrchestrator>();
+
+        // Channel 3: Explorer -> Planet
+        let (_tx_expl_in, rx_expl_in) = mpsc::channel::<ExplorerToPlanet>();
+        // Channel 4: Planet -> Explorer
+        let (tx_expl_out, _rx_expl_out) = mpsc::channel::<PlanetToExplorer>();
+
+        ((rx_orch_in, tx_orch_out), (rx_expl_in, tx_expl_out))
+    }
+
+    // --- Unit Tests: Planet State Logic ---
+
+    #[test]
+    fn test_planet_state_rocket_construction() {
+        let mut state = PlanetState {
+            id: 0,
+            energy_cells: vec![EnergyCell::new()],
+            rocket: None,
+            generator: Generator::new(),
+            combinator: Combinator::new(),
+            can_have_rocket: true,
+        };
+
+        let cell = state.cell_mut(0);
+        let sunray = Sunray::new();
+        cell.charge(sunray);
+
+        // Build Rocket
+        let res = state.build_rocket(0);
+        assert!(res.is_ok());
+        assert!(state.has_rocket());
+        assert!(!state.cell(0).is_charged());
+
+        // Take Rocket
+        let rocket = state.take_rocket();
+        assert!(rocket.is_some());
+        assert!(!state.has_rocket());
+    }
+
+    #[test]
+    fn test_planet_state_type_b_no_rocket() {
+        let mut state = PlanetState {
+            id: 0,
+            energy_cells: vec![EnergyCell::new()],
+            rocket: None,
+            generator: Generator::new(),
+            combinator: Combinator::new(),
+            can_have_rocket: false, // Type B
+        };
+
+        let cell = state.cell_mut(0);
+        cell.charge(Sunray::new());
+
+        let res = state.build_rocket(0);
+        assert!(res.is_err(), "Type B should not be able to build rockets");
+    }
+
+    // --- Integration Tests: Constructor ---
+
+    #[test]
+    fn test_planet_construction_constraints() {
+        // 1. Valid Construction
+        let (orch_ch, expl_ch) = get_test_channels();
+        let valid_gen = vec![BasicResourceType::Oxygen];
+
+        let valid_planet = Planet::new(
+            1,
+            PlanetType::A,
+            MockAI::new(),
+            valid_gen,
+            vec![],
+            orch_ch,
+            expl_ch,
+        );
+        assert!(valid_planet.is_ok());
+
+        // 2. Invalid: Empty Gen Rules
+        let (orch_ch, expl_ch) = get_test_channels();
+        let invalid_empty = Planet::new(
+            1,
+            PlanetType::A,
+            MockAI::new(),
+            vec![], // Error
+            vec![],
+            orch_ch,
+            expl_ch,
+        );
+        assert!(invalid_empty.is_err());
+
+        // 3. Invalid: Too Many Gen Rules for Type A
+        let (orch_ch, expl_ch) = get_test_channels();
+        let invalid_gen = Planet::new(
+            1,
+            PlanetType::A,
+            MockAI::new(),
+            vec![BasicResourceType::Oxygen, BasicResourceType::Hydrogen], // Error for Type A
+            vec![],
+            orch_ch,
+            expl_ch,
+        );
+        assert!(invalid_gen.is_err());
+    }
+
+    // --- Integration Tests: Loop ---
+
+    #[test]
+    fn test_planet_run_loop_survival() {
+        // 1. Orch -> Planet
+        let (tx_to_planet_orch, rx_from_orch) = mpsc::channel::<OrchestratorToPlanet>();
+        // 2. Planet -> Orch
+        let (tx_from_planet_orch, rx_to_orch) = mpsc::channel::<PlanetToOrchestrator>();
+
+        // 3. Expl -> Planet
+        let (_tx_to_planet_expl, rx_from_expl) = mpsc::channel::<ExplorerToPlanet>();
+        // 4. Planet -> Expl
+        let (tx_from_planet_expl, _rx_from_planet) = mpsc::channel::<PlanetToExplorer>();
+
+        // Build Planet
+        let mut planet = Planet::new(
+            100,
+            PlanetType::A,
+            MockAI::new(),
+            vec![BasicResourceType::Oxygen],
+            vec![],
+            (rx_from_orch, tx_from_planet_orch),
+            (rx_from_expl, tx_from_planet_expl),
+        )
+        .expect("Failed to create planet");
+
+        // Spawn thread
+        let handle = thread::spawn(move || {
+            let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let _ = planet.run();
+            }));
+        });
+
+        // 1. Start AI
+        tx_to_planet_orch
+            .send(OrchestratorToPlanet::StartPlanetAI(StartPlanetAiMsg))
+            .unwrap();
+        thread::sleep(Duration::from_millis(50));
+
+        // 2. Send Sunray
+        tx_to_planet_orch
+            .send(OrchestratorToPlanet::Sunray(Sunray::new()))
+            .unwrap();
+
+        // Expect Ack
+        if let Ok(PlanetToOrchestrator::SunrayAck { planet_id, .. }) =
+            rx_to_orch.recv_timeout(Duration::from_millis(200))
+        {
+            assert_eq!(planet_id, 100);
+        } else {
+            panic!("Did not receive SunrayAck");
+        }
+
+        // 3. Send Asteroid (AI should build rocket using the charged cell)
+        tx_to_planet_orch
+            .send(OrchestratorToPlanet::Asteroid(Asteroid::new()))
+            .unwrap();
+
+        // 4. Expect Survival (Ack with Some(Rocket))
+        match rx_to_orch.recv_timeout(Duration::from_millis(200)) {
+            Ok(PlanetToOrchestrator::AsteroidAck {
+                planet_id, rocket, ..
+            }) => {
+                assert_eq!(planet_id, 100);
+                assert!(rocket.is_some(), "Planet failed to build rocket!");
+            }
+            Ok(_) => panic!("Wrong message type"),
+            Err(_) => panic!("Timeout waiting for AsteroidAck"),
+        }
+
+        // 5. Stop
+        tx_to_planet_orch
+            .send(OrchestratorToPlanet::StopPlanetAI(StopPlanetAiMsg))
+            .unwrap();
+
+        drop(tx_to_planet_orch);
+        let _ = handle.join();
     }
 }
