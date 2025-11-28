@@ -23,8 +23,6 @@ pub enum OrchestratorToPlanet {
     Asteroid(Asteroid),
     StartPlanetAI(StartPlanetAiMsg),
     StopPlanetAI(StopPlanetAiMsg),
-    ManualStopPlanetAI(ManualStopPlanetAiMsg),
-    ManualStartPlanetAI(ManualStartPlanetAiMsg),
     InternalStateRequest(InternalStateRequestMsg),
 }
 pub struct StartPlanetAiMsg;
@@ -42,7 +40,7 @@ pub enum PlanetToOrchestrator {
     StopPlanetAIResult { planet_id: u32, timestamp: SystemTime },
     ManualStopPlanetAIResult { planet_id: u32, timestamp: SystemTime },
     ManualStartPlanetAIResult { planet_id: u32, timestamp: SystemTime },
-    InternalStateResponse { planet_id: u32, planet_state: Arc<PlanetState>,  timestamp: SystemTime },
+    InternalStateResponse { planet_id: u32, planet_state: PlanetState,  timestamp: SystemTime }, //do we want to clone the planetState?, orchestrator should always know the planetState
 }
 
 /// Messages sent by the `Orchestrator` to an `Explorer`.
@@ -57,7 +55,7 @@ pub enum OrchestratorToExplorer {
     GenerateResourceRequest(GenerateResourceRequest),
     CombineResourceRequest (CombineResourceRequest),
     BagContentRequest(BagContentRequestMsg),
-    NeighborsResponse{ neighbors: Vec<Arc<PlanetState>> },
+    NeighborsResponse{ neighbors: Vec<u32> }, //do we want to send ids of the planets?
 
 }
 
