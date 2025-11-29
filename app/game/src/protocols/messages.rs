@@ -11,12 +11,12 @@ use crate::components::resource::{
 };
 use crate::components::rocket::Rocket;
 use crate::components::sunray::Sunray;
+use std::collections::HashSet;
 use std::sync::mpsc;
 use std::time::SystemTime;
 
 //placeholder for the BagContentResponse
 // TODO: this is just a draft! needs to be completed
-pub struct ExplorerBag;
 
 /// Messages sent by the `Orchestrator` to a `Planet`.
 pub enum OrchestratorToPlanet {
@@ -41,8 +41,7 @@ pub enum PlanetToOrchestrator {
     AsteroidAck {
         planet_id: u32,
         rocket: Option<Rocket>,
-    },
-    ///depends on how we want to manage the defense + TODO add timestamp but planet code complains
+    }, //depends on how we want to manage the defense + TODO add timestamp but planet code complains
     StartPlanetAIResult {
         planet_id: u32,
         timestamp: SystemTime,
@@ -68,25 +67,25 @@ pub enum PlanetToOrchestrator {
 
 /// Messages sent by the `Orchestrator` to an `Explorer`.
 pub enum OrchestratorToExplorer {
-    StartExplorerAI(ManualStartExplorerAIMsg),
+    StartExplorerAI,
     ResetExplorerAI(ResetExplorerAIMsg),
-    MoveToPlanet(MoveToPlanet),
+    MoveToPlanet {
+        sender_to_new_planet: Option<mpsc::Sender<ExplorerToPlanet>>,
+    }, //none if explorer asks to move to a non-adjacent planet,
     CurrentPlanetRequest(CurrentPlanetRequest),
     SupportedResourceRequest(SupportedResourceRequest),
     SupportedCombinationRequest(SupportedCombinationRequest),
     GenerateResourceRequest(GenerateResourceRequest),
     CombineResourceRequest(CombineResourceRequest),
     BagContentRequest(BagContentRequestMsg),
-    NeighborsResponse { neighbors: Vec<u32> }, //do we want to send ids of the planets?
+    NeighborsResponse {
+        neighbors: Vec<u32>,
+    }, //do we want to send ids of the planets?
 }
 
 pub struct BagContentRequestMsg;
-pub struct ManualStartExplorerAIMsg;
 pub struct ResetExplorerAIMsg;
-pub struct MoveToPlanet {
-    #[allow(unused)]
-    sender_to_new_planet: Option<mpsc::Sender<ExplorerToPlanet>>, //none if explorer asks to move to a non-adjacent planet
-}
+pub struct MoveToPlanet {} //TODO: DELETE THIS LINE, USED TO COMPLY WITH OLD ORCHESTRATOR CODE
 pub struct CurrentPlanetRequest;
 pub struct SupportedResourceRequest;
 pub struct SupportedCombinationRequest;
@@ -112,7 +111,7 @@ pub enum ExplorerToOrchestrator<T> {
     },
     SupportedResourceResult {
         explorer_id: u32,
-        supported_resources: Option<Vec<BasicResourceType>>,
+        supported_resources: Option<HashSet<BasicResourceType>>,
         timestamp: SystemTime,
     },
     SupportedCombinationResult {
@@ -152,7 +151,7 @@ pub enum ExplorerToPlanet {
     },
     GenerateResourceRequest {
         explorer_id: u32,
-        msg: GenerateResourceRequest,
+        resource: BasicResourceType,
     },
     CombineResourceRequest {
         explorer_id: u32,
@@ -166,21 +165,17 @@ pub enum ExplorerToPlanet {
     },
 }
 
-pub struct GenerateResourceRequest {
-    #[allow(unused)]
-    resource: BasicResourceType,
-}
+pub struct GenerateResourceRequest {} //TODO DELETE THIS LINE, ONLY USE TO COMPLY WITH OLD CODE OF THE ORCHESTRATOR
 
-//TODO delete this line, only use to comply with old code of the orchestrator
-pub struct CombineResourceRequest {}
+pub struct CombineResourceRequest {} //TODO delete this line, only use to comply with old code of the orchestrator
 
 /// Messages sent by a `Planet` to an `Explorer`.
 pub enum PlanetToExplorer {
     SupportedResourceResponse {
-        resource_list: Option<Vec<BasicResourceType>>,
+        resource_list: Option<HashSet<BasicResourceType>>,
     },
     SupportedCombinationResponse {
-        combination_list: Option<Vec<ComplexResourceType>>,
+        combination_list: Option<HashSet<ComplexResourceType>>,
     },
     GenerateResourceResponse {
         resource: Option<BasicResource>,
