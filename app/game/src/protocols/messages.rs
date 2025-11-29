@@ -16,7 +16,6 @@ use std::sync::mpsc;
 use std::time::SystemTime;
 
 //placeholder for the BagContentResponse
-pub struct ExplorerBag;
 // TODO: this is just a draft! needs to be completed
 
 /// Messages sent by the `Orchestrator` to a `Planet`.
