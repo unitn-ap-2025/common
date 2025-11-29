@@ -2,7 +2,7 @@ use crate::components::energy_cell::EnergyCell;
 /// Represents the rocket in the game, used by the planet.
 #[allow(dead_code)]
 pub struct Rocket {
-    _private: ()
+    _private: (),
 }
 
 #[allow(dead_code)]
