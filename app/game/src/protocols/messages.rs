@@ -85,7 +85,7 @@ pub struct ManualStartExplorerAIMsg;
 pub struct ResetExplorerAIMsg;
 pub struct MoveToPlanet {
     #[allow(unused)]
-    sender_to_new_planet: Option<mpsc::Sender<ExplorerToPlanet>>, //none if explorer asks to move to a non-adjacent planet
+    pub sender_to_new_planet: Option<mpsc::Sender<ExplorerToPlanet>>, //none if explorer asks to move to a non-adjacent planet
 }
 pub struct CurrentPlanetRequest;
 pub struct SupportedResourceRequest;
