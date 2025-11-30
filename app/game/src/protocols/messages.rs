@@ -50,14 +50,6 @@ pub enum PlanetToOrchestrator {
         planet_id: u32,
         timestamp: SystemTime,
     },
-    ManualStopPlanetAIResult {
-        planet_id: u32,
-        timestamp: SystemTime,
-    },
-    ManualStartPlanetAIResult {
-        planet_id: u32,
-        timestamp: SystemTime,
-    },
     InternalStateResponse {
         planet_id: u32,
         planet_state: PlanetState,
@@ -75,7 +67,9 @@ pub enum OrchestratorToExplorer {
     CurrentPlanetRequest(CurrentPlanetRequest),
     SupportedResourceRequest(SupportedResourceRequest),
     SupportedCombinationRequest(SupportedCombinationRequest),
-    GenerateResourceRequest(GenerateResourceRequest),
+    GenerateResourceRequest {
+        to_generate: BasicResourceType,
+    },
     CombineResourceRequest(CombineResourceRequest),
     BagContentRequest(BagContentRequestMsg),
     NeighborsResponse {
@@ -116,14 +110,14 @@ pub enum ExplorerToOrchestrator<T> {
     },
     SupportedCombinationResult {
         explorer_id: u32,
-        combination_list: Option<Vec<ComplexResourceType>>,
+        combination_list: Option<HashSet<ComplexResourceType>>,
         timestamp: SystemTime,
     },
     GenerateResourceResponse {
         explorer_id: u32,
         generated: Result<(), ()>,
         timestamp: SystemTime,
-    }, //tells to the explorer if the asked resource has been generated
+    }, //tells to the orchestrator if the asked resource has been generated
     CombineResourceResponse {
         explorer_id: u32,
         generated: Result<(), ()>,
@@ -137,6 +131,12 @@ pub enum ExplorerToOrchestrator<T> {
     NeighborsRequest {
         explorer_id: u32,
         current_planet_id: u32,
+        timestamp: SystemTime,
+    },
+    TravelToPlanetRequest {
+        explorer_id: u32,
+        current_planet_id: u32,
+        dst_planet_id: u32,
         timestamp: SystemTime,
     },
 }
