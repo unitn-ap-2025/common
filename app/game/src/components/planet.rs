@@ -19,6 +19,7 @@
 //! ```
 //! use std::sync::mpsc;
 //! use common_game::components::planet::{Planet, PlanetAI, PlanetState, PlanetType};
+//! use common_game::components::resource::{Combinator, Generator};
 //! use common_game::components::rocket::Rocket;
 //! use common_game::protocols::messages;
 //!
@@ -29,6 +30,8 @@
 //!     fn handle_orchestrator_msg(
 //!         &mut self,
 //!         state: &mut PlanetState,
+//!         generator: &Generator,
+//!         combinator: &Combinator,
 //!         msg: messages::OrchestratorToPlanet
 //!     ) -> Option<messages::PlanetToOrchestrator> {
 //!         // your handler code here...
@@ -38,13 +41,20 @@
 //!     fn handle_explorer_msg(
 //!         &mut self,
 //!         state: &mut PlanetState,
+//!         generator: &Generator,
+//!         combinator: &Combinator,
 //!         msg: messages::ExplorerToPlanet
 //!     ) -> Option<messages::PlanetToExplorer> {
 //!         // your handler code here...
 //!         None
 //!     }
 //!
-//!     fn handle_asteroid(&mut self, state: &mut PlanetState) -> Option<Rocket> {
+//!     fn handle_asteroid(
+//!         &mut self,
+//!         state: &mut PlanetState,
+//!         generator: &Generator,
+//!         combinator: &Combinator,
+//!     ) -> Option<Rocket> {
 //!         // your handler code here...
 //!         None
 //!     }
@@ -111,6 +121,8 @@ pub trait PlanetAI {
     fn handle_orchestrator_msg(
         &mut self,
         state: &mut PlanetState,
+        generator: &Generator,
+        combinator: &Combinator,
         msg: OrchestratorToPlanet,
     ) -> Option<PlanetToOrchestrator>;
 
@@ -121,6 +133,8 @@ pub trait PlanetAI {
     fn handle_explorer_msg(
         &mut self,
         state: &mut PlanetState,
+        generator: &Generator,
+        combinator: &Combinator,
         msg: ExplorerToPlanet,
     ) -> Option<PlanetToExplorer>;
 
@@ -131,7 +145,12 @@ pub trait PlanetAI {
     /// # Returns
     /// In order to survive, an owned [Rocket] **must** be returned from this method;
     /// if `None` is returned instead, the planet will (or *should*) be **destroyed** by the orchestrator
-    fn handle_asteroid(&mut self, state: &mut PlanetState) -> Option<Rocket>;
+    fn handle_asteroid(
+        &mut self,
+        state: &mut PlanetState,
+        generator: &Generator,
+        combinator: &Combinator,
+    ) -> Option<Rocket>;
 
     /// This method will be invoked when a [OrchestratorToPlanet::StartPlanetAI]
     /// is received, but **only if** the planet is currently in a *stopped* state.
@@ -212,8 +231,6 @@ pub struct PlanetState {
     id: u32,
     energy_cells: Vec<EnergyCell>,
     rocket: Option<Rocket>,
-    pub generator: Generator,
-    pub combinator: Combinator,
     can_have_rocket: bool,
 }
 
@@ -284,7 +301,8 @@ impl PlanetState {
     /// inside the planet, taking ownership of it.
     ///
     /// # Errors
-    /// Returns an error if the planet type prohibits the storing of rockets.
+    /// Returns an error if the planet type prohibits the storing of rockets or if
+    /// the energy cell is not charged.
     pub fn build_rocket(&mut self, i: usize) -> Result<(), String> {
         if self.can_have_rocket {
             let energy_cell = self.cell_mut(i);
@@ -309,6 +327,8 @@ pub struct Planet<T: PlanetAI> {
     state: PlanetState,
     planet_type: PlanetType,
     pub ai: T,
+    generator: Generator,
+    combinator: Combinator,
 
     from_orchestrator: mpsc::Receiver<OrchestratorToPlanet>,
     to_orchestrator: mpsc::Sender<PlanetToOrchestrator>,
@@ -386,11 +406,11 @@ impl<T: PlanetAI> Planet<T> {
                     energy_cells: (0..n_energy_cells).map(|_| EnergyCell::new()).collect(),
                     can_have_rocket,
                     rocket: None,
-                    generator,
-                    combinator,
                 },
                 planet_type,
                 ai,
+                generator,
+                combinator,
                 from_orchestrator,
                 to_orchestrator,
                 from_explorer,
@@ -434,7 +454,9 @@ impl<T: PlanetAI> Planet<T> {
                     self.ai.start(&self.state)
                 }
                 Ok(OrchestratorToPlanet::Asteroid(_)) => {
-                    let rocket = self.ai.handle_asteroid(&mut self.state);
+                    let rocket =
+                        self.ai
+                            .handle_asteroid(&mut self.state, &self.generator, &self.combinator);
                     self.to_orchestrator
                         .send(PlanetToOrchestrator::AsteroidAck {
                             planet_id: self.id(),
@@ -444,7 +466,12 @@ impl<T: PlanetAI> Planet<T> {
                 }
                 Ok(msg) => {
                     self.ai
-                        .handle_orchestrator_msg(&mut self.state, msg)
+                        .handle_orchestrator_msg(
+                            &mut self.state,
+                            &self.generator,
+                            &self.combinator,
+                            msg,
+                        )
                         .map(|response| self.to_orchestrator.send(response))
                         .transpose()
                         .map_err(|_| "Orchestrator disconnected".to_string())?;
@@ -459,7 +486,12 @@ impl<T: PlanetAI> Planet<T> {
             // explorer incoming message polling
             match self.from_explorer.try_recv() {
                 Ok(msg) => {
-                    if let Some(response) = self.ai.handle_explorer_msg(&mut self.state, msg) {
+                    if let Some(response) = self.ai.handle_explorer_msg(
+                        &mut self.state,
+                        &self.generator,
+                        &self.combinator,
+                        msg,
+                    ) {
                         self.to_explorer
                             .send(response)
                             .unwrap_or_else(|_| println!("No explorer connected!"))
@@ -541,14 +573,18 @@ mod tests {
         fn handle_orchestrator_msg(
             &mut self,
             state: &mut PlanetState,
+            _generator: &Generator,
+            _combinator: &Combinator,
             msg: OrchestratorToPlanet,
         ) -> Option<PlanetToOrchestrator> {
             match msg {
                 OrchestratorToPlanet::Sunray(s) => {
                     self.sunray_count += 1;
+
                     if let Some(cell) = state.cells_iter_mut().next() {
                         cell.charge(s);
                     }
+
                     Some(PlanetToOrchestrator::SunrayAck {
                         planet_id: state.id(),
                         timestamp: SystemTime::now(),
@@ -561,12 +597,19 @@ mod tests {
         fn handle_explorer_msg(
             &mut self,
             _state: &mut PlanetState,
+            _generator: &Generator,
+            _combinator: &Combinator,
             _msg: ExplorerToPlanet,
         ) -> Option<PlanetToExplorer> {
             None
         }
 
-        fn handle_asteroid(&mut self, state: &mut PlanetState) -> Option<Rocket> {
+        fn handle_asteroid(
+            &mut self,
+            state: &mut PlanetState,
+            _generator: &Generator,
+            _combinator: &Combinator,
+        ) -> Option<Rocket> {
             if let Some(idx) = state.cells_iter().position(|c| c.is_charged()) {
                 if state.build_rocket(idx).is_ok() {
                     return state.take_rocket();
@@ -617,8 +660,6 @@ mod tests {
             id: 0,
             energy_cells: vec![EnergyCell::new()],
             rocket: None,
-            generator: Generator::new(),
-            combinator: Combinator::new(),
             can_have_rocket: true,
         };
 
@@ -644,8 +685,6 @@ mod tests {
             id: 0,
             energy_cells: vec![EnergyCell::new()],
             rocket: None,
-            generator: Generator::new(),
-            combinator: Combinator::new(),
             can_have_rocket: false, // Type B
         };
 
@@ -779,5 +818,50 @@ mod tests {
 
         drop(tx_to_planet_orch);
         let _ = handle.join();
+    }
+
+    #[test]
+    fn test_resource_creation() {
+        let (orch_ch, expl_ch) = get_test_channels();
+        let gen_rules = vec![BasicResourceType::Oxygen, BasicResourceType::Hydrogen];
+        let comb_rules = vec![ComplexResourceType::Water];
+        let mut planet = Planet::new(
+            0,
+            PlanetType::B,
+            MockAI::new(),
+            gen_rules,
+            comb_rules,
+            orch_ch,
+            expl_ch,
+        )
+        .unwrap();
+
+        // aliases for planet internals
+        let state = &mut planet.state;
+        let generator = &planet.generator;
+        let combinator = &planet.combinator;
+
+        // gen oxygen
+        let cell = state.cell_mut(0);
+        cell.charge(Sunray::new());
+
+        let oxygen = generator.make_oxygen(cell);
+        assert!(oxygen.is_ok());
+        let oxygen = oxygen.unwrap();
+
+        // gen hydrogen
+        let cell = state.cell_mut(0);
+        cell.charge(Sunray::new());
+
+        let hydrogen = generator.make_hydrogen(cell);
+        assert!(hydrogen.is_ok());
+        let hydrogen = hydrogen.unwrap();
+
+        // combine the two elements into water
+        let cell = state.cell_mut(0);
+        cell.charge(Sunray::new());
+
+        let diamond = combinator.make_water(hydrogen, oxygen, cell);
+        assert!(diamond.is_ok());
     }
 }
