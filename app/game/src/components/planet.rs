@@ -300,17 +300,25 @@ impl PlanetState {
     /// Constructs a rocket using the *i-th* [EnergyCell] of the planet and stores it
     /// inside the planet, taking ownership of it.
     ///
+    /// # Panics
+    /// This method will panic if the index `i` is out of bounds.
+    /// Always check the number of energy cells available with [cells_count].
+    ///
     /// # Errors
-    /// Returns an error if the planet type prohibits the storing of rockets or if
-    /// the energy cell is not charged.
+    /// Returns an error if:
+    /// - The planet type prohibits the storing of rockets.
+    /// - The planet already has a rocket built.
+    /// - The energy cell is not charged
     pub fn build_rocket(&mut self, i: usize) -> Result<(), String> {
-        if self.can_have_rocket {
+        if !self.can_have_rocket {
+            Err("This planet type can't have rockets.".to_string())
+        } else if self.has_rocket() {
+            Err("This planet already has a rocket.".to_string())
+        } else {
             let energy_cell = self.cell_mut(i);
             Rocket::new(energy_cell).map(|rocket| {
                 self.rocket = Some(rocket);
             })
-        } else {
-            Err("This planet type can't have rockets.".to_string())
         }
     }
 }
