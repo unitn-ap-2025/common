@@ -46,7 +46,7 @@ pub enum ResourceType {
 ///
 /// Contains a resource which could be both [`BasicResource`] and [`ComplexResource`]
 ///
-#[derive(Debug)]
+#[derive(Debug,PartialEq,Eq,Hash )]
 pub enum GenericResource {
     BasicResources(BasicResource),
     ComplexResources(ComplexResource),
@@ -150,7 +150,7 @@ macro_rules! define_resources {
         (Basic: [$($basic:ident),* $(,)?], Complex: [$($complex:ident),* $(,)?]) => {
 
             $(
-                #[derive(Debug)]
+                #[derive(Debug, PartialEq,Eq,Hash)]
                 pub struct $basic { _private: () }
 
                 impl Display for $basic {
@@ -173,7 +173,7 @@ macro_rules! define_resources {
             )*
 
             $(
-                #[derive(Debug)]
+                #[derive(Debug, PartialEq,Eq,Hash)]
                 pub struct $complex {
                     _private: (),
                 }
@@ -220,7 +220,7 @@ macro_rules! define_resources {
              ///
              /// Gives the choice between every possible basic resource
              ///
-             #[derive(Debug)]
+             #[derive(Debug, PartialEq,Eq,Hash)]
             pub enum BasicResource {
                 $($basic($basic),)*
             }
@@ -228,7 +228,7 @@ macro_rules! define_resources {
              ///
              /// Gives the choice between every possible complex resource
              ///
-             #[derive(Debug)]
+             #[derive(Debug ,PartialEq,Eq,Hash)]
             pub enum ComplexResource {
                 $($complex($complex),)*
             }
@@ -277,7 +277,7 @@ macro_rules! define_combination_rules {
                  ///
                  /// Gives a structured way to pass around the request to produce a complex resource
                  ///
-                 #[derive(Debug)]
+                 #[derive(Debug, PartialEq,Eq,Hash )]
                 pub enum ComplexResourceRequest{
                      $([<$result >]( $lhs, $rhs ), )*
                 }
