@@ -247,7 +247,7 @@ impl PlanetState {
     ///
     /// # Panics
     /// This method will panic if the index `i` is out of bounds.
-    /// Always check the number of energy cells available with [cells_count].
+    /// Always check the number of energy cells available with [PlanetState::cells_count].
     pub fn cell(&self, i: usize) -> &EnergyCell {
         &self.energy_cells[i]
     }
@@ -259,7 +259,7 @@ impl PlanetState {
     ///
     /// # Panics
     /// This method will panic if the index `i` is out of bounds.
-    /// Always check the number of energy cells available with [cells_count].
+    /// Always check the number of energy cells available with [PlanetState::cells_count].
     pub fn cell_mut(&mut self, i: usize) -> &mut EnergyCell {
         &mut self.energy_cells[i]
     }
@@ -302,7 +302,7 @@ impl PlanetState {
     ///
     /// # Panics
     /// This method will panic if the index `i` is out of bounds.
-    /// Always check the number of energy cells available with [cells_count].
+    /// Always check the number of energy cells available with [PlanetState::cells_count].
     ///
     /// # Errors
     /// Returns an error if:
