@@ -89,15 +89,15 @@
 //! }
 //! ```
 
-use std::slice::{Iter, IterMut};
-use std::sync::mpsc;
-
 use crate::components::energy_cell::EnergyCell;
 use crate::components::resource::{BasicResourceType, Combinator, ComplexResourceType, Generator};
 use crate::components::rocket::Rocket;
 use crate::protocols::messages::{
     ExplorerToPlanet, OrchestratorToPlanet, PlanetToExplorer, PlanetToOrchestrator,
 };
+use std::slice::{Iter, IterMut};
+use std::sync::mpsc;
+use std::time::SystemTime;
 
 /// The trait that defines the behaviour of a planet.
 ///
@@ -469,6 +469,7 @@ impl<T: PlanetAI> Planet<T> {
                         .send(PlanetToOrchestrator::AsteroidAck {
                             planet_id: self.id(),
                             rocket,
+                            timestamp: SystemTime::now(),
                         })
                         .map_err(|_| "Orchestrator disconnected".to_string())?;
                 }
