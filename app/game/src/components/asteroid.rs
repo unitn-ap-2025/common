@@ -20,7 +20,7 @@ impl Asteroid {
     /// # Returns
     ///
     /// Returns a new instance of [Asteroid].
-    pub fn new() -> Asteroid {
+    pub(crate) fn new() -> Asteroid {
         Asteroid { _private: () }
     }
 }
