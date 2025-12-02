@@ -6,7 +6,7 @@
 use crate::components::asteroid::Asteroid;
 use crate::components::planet::PlanetState;
 use crate::components::resource::{
-    Bag, BasicResource, BasicResourceType, ComplexResource, ComplexResourceRequest,
+     BasicResource, BasicResourceType, ComplexResource, ComplexResourceRequest,
     ComplexResourceType,
 };
 use crate::components::rocket::Rocket;
@@ -125,7 +125,7 @@ pub enum ExplorerToOrchestrator<T> {
     },
     BagContentResponse {
         explorer_id: u32,
-        bag_content: Box<dyn Bag<T>>,
+        bag_content: T,
         timestamp: SystemTime,
     },
     NeighborsRequest {
