@@ -8,3 +8,4 @@ path = "src/lib.rs"
 
 [dependencies]
 paste = "1.0.15"
+log = "0.4"
