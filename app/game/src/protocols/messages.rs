@@ -25,6 +25,13 @@ pub enum OrchestratorToPlanet {
     StartPlanetAI(StartPlanetAiMsg),
     StopPlanetAI(StopPlanetAiMsg),
     InternalStateRequest(InternalStateRequestMsg), //I think orchestrator should always have the internal state for the UI, but up to discussions
+    IncomingExplorerRequest {
+        explorer_id: u32,
+        new_mpsc_sender: mpsc::Sender<PlanetToExplorer>,
+    },
+    OutgoingExplorerRequest {
+        explorer_id: u32,
+    },
 }
 pub struct StartPlanetAiMsg;
 pub struct StopPlanetAiMsg;
@@ -55,12 +62,21 @@ pub enum PlanetToOrchestrator {
         planet_state: PlanetState,
         timestamp: SystemTime,
     }, //do we want to clone the planetState?, orchestrator should always know the planetState
+    IncomingExplorerResponse {
+        planet_id: u32,
+        res: Result<(), String>,
+    },
+    OutgoingExplorerResponse {
+        planet_id: u32,
+        res: Result<(), String>,
+    },
 }
 
 /// Messages sent by the `Orchestrator` to an `Explorer`.
 pub enum OrchestratorToExplorer {
     StartExplorerAI,
     ResetExplorerAI(ResetExplorerAIMsg),
+    StopExplorerAI,
     MoveToPlanet {
         sender_to_new_planet: Option<mpsc::Sender<ExplorerToPlanet>>,
     }, //none if explorer asks to move to a non-adjacent planet,
@@ -94,6 +110,10 @@ pub enum ExplorerToOrchestrator<T> {
         explorer_id: u32,
         timestamp: SystemTime,
     },
+    ResetExplorerAIResult {
+        explorer_id: u32,
+        timestamp: SystemTime,
+    },
     MovedToPlanetResult {
         explorer_id: u32,
         timestamp: SystemTime,
@@ -105,12 +125,12 @@ pub enum ExplorerToOrchestrator<T> {
     },
     SupportedResourceResult {
         explorer_id: u32,
-        supported_resources: Option<HashSet<BasicResourceType>>,
+        supported_resources: HashSet<BasicResourceType>,
         timestamp: SystemTime,
     },
     SupportedCombinationResult {
         explorer_id: u32,
-        combination_list: Option<HashSet<ComplexResourceType>>,
+        combination_list: HashSet<ComplexResourceType>,
         timestamp: SystemTime,
     },
     GenerateResourceResponse {
@@ -172,10 +192,10 @@ pub struct CombineResourceRequest {} //TODO delete this line, only use to comply
 /// Messages sent by a `Planet` to an `Explorer`.
 pub enum PlanetToExplorer {
     SupportedResourceResponse {
-        resource_list: Option<HashSet<BasicResourceType>>,
+        resource_list: HashSet<BasicResourceType>,
     },
     SupportedCombinationResponse {
-        combination_list: Option<HashSet<ComplexResourceType>>,
+        combination_list: HashSet<ComplexResourceType>,
     },
     GenerateResourceResponse {
         resource: Option<BasicResource>,
