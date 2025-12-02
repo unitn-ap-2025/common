@@ -43,25 +43,21 @@ pub struct InternalStateRequestMsg;
 pub enum PlanetToOrchestrator {
     SunrayAck {
         planet_id: u32,
-        timestamp: SystemTime,
     },
     AsteroidAck {
         planet_id: u32,
         rocket: Option<Rocket>,
-    }, //depends on how we want to manage the defense + TODO add timestamp but planet code complains
+    },
     StartPlanetAIResult {
         planet_id: u32,
-        timestamp: SystemTime,
     },
     StopPlanetAIResult {
         planet_id: u32,
-        timestamp: SystemTime,
     },
     InternalStateResponse {
         planet_id: u32,
         planet_state: PlanetState,
-        timestamp: SystemTime,
-    }, //do we want to clone the planetState?, orchestrator should always know the planetState
+    },
     IncomingExplorerResponse {
         planet_id: u32,
         res: Result<(), String>,
@@ -76,7 +72,7 @@ pub enum PlanetToOrchestrator {
 pub enum OrchestratorToExplorer {
     StartExplorerAI,
     ResetExplorerAI(ResetExplorerAIMsg),
-    StopExplorerAI,
+    KillExplorerAI,
     MoveToPlanet {
         sender_to_new_planet: Option<mpsc::Sender<ExplorerToPlanet>>,
     }, //none if explorer asks to move to a non-adjacent planet,
@@ -104,60 +100,48 @@ pub struct SupportedCombinationRequest;
 pub enum ExplorerToOrchestrator<T> {
     StartExplorerAIResult {
         explorer_id: u32,
-        timestamp: SystemTime,
     },
-    StopExplorerAIResult {
+    KillExplorerAIResult {
         explorer_id: u32,
-        timestamp: SystemTime,
     },
     ResetExplorerAIResult {
         explorer_id: u32,
-        timestamp: SystemTime,
     },
     MovedToPlanetResult {
         explorer_id: u32,
-        timestamp: SystemTime,
     },
     CurrentPlanetResult {
         explorer_id: u32,
         planet_id: u32,
-        timestamp: SystemTime,
     },
     SupportedResourceResult {
         explorer_id: u32,
         supported_resources: HashSet<BasicResourceType>,
-        timestamp: SystemTime,
     },
     SupportedCombinationResult {
         explorer_id: u32,
         combination_list: HashSet<ComplexResourceType>,
-        timestamp: SystemTime,
     },
     GenerateResourceResponse {
         explorer_id: u32,
         generated: Result<(), ()>,
-        timestamp: SystemTime,
     }, //tells to the orchestrator if the asked resource has been generated
     CombineResourceResponse {
         explorer_id: u32,
         generated: Result<(), ()>,
-        timestamp: SystemTime,
     },
     BagContentResponse {
         explorer_id: u32,
         bag_content: Box<dyn Bag<T>>,
-        timestamp: SystemTime,
     },
     NeighborsRequest {
         explorer_id: u32,
         current_planet_id: u32,
-        timestamp: SystemTime,
     },
     TravelToPlanetRequest {
         explorer_id: u32,
         current_planet_id: u32,
         dst_planet_id: u32,
-        timestamp: SystemTime,
     },
 }
 
