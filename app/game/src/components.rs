@@ -5,3 +5,4 @@ pub mod resource;
 
 pub mod rocket;
 pub mod sunray;
+pub mod generator;
