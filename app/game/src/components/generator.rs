@@ -53,10 +53,7 @@ mod tests {
         }
 
         let g = Generator::new();
-        assert!(
-            g.is_ok(),
-            "The first generator should be created correctly"
-        );
+        assert!(g.is_ok(), "The first generator should be created correctly");
     }
 
     #[test]

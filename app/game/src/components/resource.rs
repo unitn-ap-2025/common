@@ -20,8 +20,6 @@ pub trait Resource: Display {
     fn to_static_str(&self) -> &'static str;
 }
 
-
-
 ///
 /// Identifies a resource which could be both [`BasicResourceType`] and [`ComplexResourceType`]
 /// without actually containing the underlying resource,
@@ -34,7 +32,7 @@ pub enum ResourceType {
 ///
 /// Contains a resource which could be both [`BasicResource`] and [`ComplexResource`]
 ///
-#[derive(Debug,PartialEq,Eq,Hash )]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum GenericResource {
     BasicResources(BasicResource),
     ComplexResources(ComplexResource),
