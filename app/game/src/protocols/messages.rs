@@ -13,11 +13,7 @@ use crate::components::sunray::Sunray;
 use std::collections::HashSet;
 use std::sync::mpsc;
 
-
-
-
 /// Messages sent by the `Orchestrator` to a `Planet`.
-
 pub enum OrchestratorToPlanet {
     Sunray(Sunray),
     Asteroid(Asteroid),
@@ -82,7 +78,6 @@ pub enum OrchestratorToExplorer {
         neighbors: Vec<u32>,
     }, //do we want to send ids of the planets?
 }
-
 
 /// Messages sent by an `Explorer` to the `Orchestrator`.
 pub enum ExplorerToOrchestrator {
@@ -152,7 +147,6 @@ pub enum ExplorerToPlanet {
     AvailableEnergyCellRequest {
         explorer_id: u32,
     },
-    
 }
 
 /// Messages sent by a `Planet` to an `Explorer`.
