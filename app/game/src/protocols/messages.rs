@@ -15,13 +15,15 @@ use std::sync::mpsc;
 
 
 
+
 /// Messages sent by the `Orchestrator` to a `Planet`.
+
 pub enum OrchestratorToPlanet {
     Sunray(Sunray),
     Asteroid(Asteroid),
     StartPlanetAI,
     StopPlanetAI,
-    InternalStateRequest, 
+    InternalStateRequest,
     IncomingExplorerRequest {
         explorer_id: u32,
         new_mpsc_sender: mpsc::Sender<PlanetToExplorer>,
@@ -150,9 +152,7 @@ pub enum ExplorerToPlanet {
     AvailableEnergyCellRequest {
         explorer_id: u32,
     },
-    InternalStateRequest {
-        explorer_id: u32,
-    },
+    
 }
 
 /// Messages sent by a `Planet` to an `Explorer`.
@@ -171,8 +171,5 @@ pub enum PlanetToExplorer {
     },
     AvailableEnergyCellResponse {
         available_cells: u32,
-    },
-    InternalStateResponse {
-        planet_state: PlanetState,
     },
 }
