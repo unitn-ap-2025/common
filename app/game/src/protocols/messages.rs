@@ -5,26 +5,23 @@
 
 use crate::components::asteroid::Asteroid;
 use crate::components::planet::PlanetState;
-use crate::components::resource::{
-    Bag, BasicResource, BasicResourceType, ComplexResource, ComplexResourceRequest,
+use crate::components::resource::{ BasicResource, BasicResourceType, ComplexResource, ComplexResourceRequest,
     ComplexResourceType,
 };
 use crate::components::rocket::Rocket;
 use crate::components::sunray::Sunray;
 use std::collections::HashSet;
 use std::sync::mpsc;
-use std::time::SystemTime;
 
-//placeholder for the BagContentResponse
-// TODO: this is just a draft! needs to be completed
+
 
 /// Messages sent by the `Orchestrator` to a `Planet`.
 pub enum OrchestratorToPlanet {
     Sunray(Sunray),
     Asteroid(Asteroid),
-    StartPlanetAI(StartPlanetAiMsg),
-    StopPlanetAI(StopPlanetAiMsg),
-    InternalStateRequest(InternalStateRequestMsg), //I think orchestrator should always have the internal state for the UI, but up to discussions
+    StartPlanetAI,
+    StopPlanetAI,
+    InternalStateRequest, 
     IncomingExplorerRequest {
         explorer_id: u32,
         new_mpsc_sender: mpsc::Sender<PlanetToExplorer>,
@@ -33,11 +30,6 @@ pub enum OrchestratorToPlanet {
         explorer_id: u32,
     },
 }
-pub struct StartPlanetAiMsg;
-pub struct StopPlanetAiMsg;
-pub struct ManualStopPlanetAiMsg;
-pub struct ManualStartPlanetAiMsg;
-pub struct InternalStateRequestMsg;
 
 /// Messages sent by a `Planet` to the `Orchestrator`.
 pub enum PlanetToOrchestrator {
@@ -71,33 +63,27 @@ pub enum PlanetToOrchestrator {
 /// Messages sent by the `Orchestrator` to an `Explorer`.
 pub enum OrchestratorToExplorer {
     StartExplorerAI,
-    ResetExplorerAI(ResetExplorerAIMsg),
+    ResetExplorerAI,
     KillExplorerAI,
     MoveToPlanet {
         sender_to_new_planet: Option<mpsc::Sender<ExplorerToPlanet>>,
     }, //none if explorer asks to move to a non-adjacent planet,
-    CurrentPlanetRequest(CurrentPlanetRequest),
-    SupportedResourceRequest(SupportedResourceRequest),
-    SupportedCombinationRequest(SupportedCombinationRequest),
+    CurrentPlanetRequest,
+    SupportedResourceRequest,
+    SupportedCombinationRequest,
     GenerateResourceRequest {
         to_generate: BasicResourceType,
     },
-    CombineResourceRequest(CombineResourceRequest),
-    BagContentRequest(BagContentRequestMsg),
+    CombineResourceRequest(ComplexResourceRequest),
+    BagContentRequest,
     NeighborsResponse {
         neighbors: Vec<u32>,
     }, //do we want to send ids of the planets?
 }
 
-pub struct BagContentRequestMsg;
-pub struct ResetExplorerAIMsg;
-pub struct MoveToPlanet {} //TODO: DELETE THIS LINE, USED TO COMPLY WITH OLD ORCHESTRATOR CODE
-pub struct CurrentPlanetRequest;
-pub struct SupportedResourceRequest;
-pub struct SupportedCombinationRequest;
 
 /// Messages sent by an `Explorer` to the `Orchestrator`.
-pub enum ExplorerToOrchestrator<T> {
+pub enum ExplorerToOrchestrator {
     StartExplorerAIResult {
         explorer_id: u32,
     },
@@ -132,7 +118,7 @@ pub enum ExplorerToOrchestrator<T> {
     },
     BagContentResponse {
         explorer_id: u32,
-        bag_content: Box<dyn Bag<T>>,
+        //bag_content: Box<dyn Bag<T>>, TODO: change this accordingly to resources
     },
     NeighborsRequest {
         explorer_id: u32,
@@ -168,10 +154,6 @@ pub enum ExplorerToPlanet {
         explorer_id: u32,
     },
 }
-
-pub struct GenerateResourceRequest {} //TODO DELETE THIS LINE, ONLY USE TO COMPLY WITH OLD CODE OF THE ORCHESTRATOR
-
-pub struct CombineResourceRequest {} //TODO delete this line, only use to comply with old code of the orchestrator
 
 /// Messages sent by a `Planet` to an `Explorer`.
 pub enum PlanetToExplorer {

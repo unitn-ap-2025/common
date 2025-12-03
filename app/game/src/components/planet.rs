@@ -452,9 +452,9 @@ impl<T: PlanetAI> Planet<T> {
             // orchestrator incoming message polling
             match self.from_orchestrator.try_recv() {
                 // TODO: do something with the StartPlanetAI message content
-                Ok(OrchestratorToPlanet::StartPlanetAI(_)) => {}
+                Ok(OrchestratorToPlanet::StartPlanetAI) => {}
                 // TODO: do something with the StopPlanetAI message content
-                Ok(OrchestratorToPlanet::StopPlanetAI(_)) => {
+                Ok(OrchestratorToPlanet::StopPlanetAI) => {
                     self.ai.stop(&self.state);
                     self.wait_for_start()?; // blocking wait
 
@@ -520,7 +520,7 @@ impl<T: PlanetAI> Planet<T> {
             let recv_re = self.from_orchestrator.recv();
             match recv_re {
                 // TODO: do something with the StartPlanetAI message content
-                Ok(OrchestratorToPlanet::StartPlanetAI(_)) => return Ok(()),
+                Ok(OrchestratorToPlanet::StartPlanetAI) => return Ok(()),
                 Err(_) => return Err("Orchestrator disconnected!".to_string()),
                 _ => {}
             }
@@ -557,7 +557,6 @@ mod tests {
     use crate::components::sunray::Sunray;
     use crate::protocols::messages::{
         ExplorerToPlanet, OrchestratorToPlanet, PlanetToExplorer, PlanetToOrchestrator,
-        StartPlanetAiMsg, StopPlanetAiMsg,
     };
 
     // --- Mock AI ---
@@ -595,7 +594,6 @@ mod tests {
 
                     Some(PlanetToOrchestrator::SunrayAck {
                         planet_id: state.id(),
-                        timestamp: SystemTime::now(),
                     })
                 }
                 _ => None,
@@ -784,7 +782,7 @@ mod tests {
 
         // 1. Start AI
         tx_to_planet_orch
-            .send(OrchestratorToPlanet::StartPlanetAI(StartPlanetAiMsg))
+            .send(OrchestratorToPlanet::StartPlanetAI)
             .unwrap();
         thread::sleep(Duration::from_millis(50));
 
@@ -821,7 +819,7 @@ mod tests {
 
         // 5. Stop
         tx_to_planet_orch
-            .send(OrchestratorToPlanet::StopPlanetAI(StopPlanetAiMsg))
+            .send(OrchestratorToPlanet::StopPlanetAI)
             .unwrap();
 
         drop(tx_to_planet_orch);
