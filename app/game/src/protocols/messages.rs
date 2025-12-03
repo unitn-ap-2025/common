@@ -5,8 +5,8 @@
 
 use crate::components::asteroid::Asteroid;
 use crate::components::planet::PlanetState;
-use crate::components::resource::{ BasicResource, BasicResourceType, ComplexResource, ComplexResourceRequest,
-    ComplexResourceType,
+use crate::components::resource::{
+    BasicResource, BasicResourceType, ComplexResource, ComplexResourceRequest, ComplexResourceType,
 };
 use crate::components::rocket::Rocket;
 use crate::components::sunray::Sunray;
