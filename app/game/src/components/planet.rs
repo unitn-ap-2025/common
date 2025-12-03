@@ -98,7 +98,6 @@ use crate::protocols::messages::{
 };
 use std::slice::{Iter, IterMut};
 use std::sync::mpsc;
-use std::time::SystemTime;
 
 /// The trait that defines the behaviour of a planet.
 ///
@@ -496,7 +495,6 @@ impl Planet {
                         .send(PlanetToOrchestrator::AsteroidAck {
                             planet_id: self.id(),
                             rocket,
-                            timestamp: SystemTime::now(),
                         })
                         .map_err(|_| "Orchestrator disconnected".to_string())?;
                 }
@@ -586,7 +584,7 @@ mod tests {
     use super::*;
     use std::sync::mpsc;
     use std::thread;
-    use std::time::{Duration, SystemTime};
+    use std::time::Duration;
 
     use crate::components::asteroid::Asteroid;
     use crate::components::energy_cell::EnergyCell;
