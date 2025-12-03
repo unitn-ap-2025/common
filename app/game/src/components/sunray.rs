@@ -18,7 +18,7 @@ impl Sunray {
     /// # Returns
     ///
     /// Returns a new instance of [Sunray].
-    pub fn new() -> Sunray {
+    pub(crate) fn new() -> Sunray {
         Sunray { _private: () }
     }
 }
