@@ -70,7 +70,7 @@
 //!     tx_orchestrator: mpsc::Sender<messages::PlanetToOrchestrator>,
 //!     rx_explorer: mpsc::Receiver<messages::ExplorerToPlanet>,
 //!     tx_explorer: mpsc::Sender<messages::PlanetToExplorer>
-//! ) -> Planet<AI> {
+//! ) -> Planet {
 //!     let id = 1;
 //!     let ai = AI {};
 //!     let gen_rules = vec![/* your recipes */];
@@ -80,7 +80,7 @@
 //!     Planet::new(
 //!         id,
 //!         PlanetType::A,
-//!         ai,
+//!         Box::new(ai),
 //!         gen_rules,
 //!         comb_rules,
 //!         (rx_orchestrator, tx_orchestrator),
@@ -89,15 +89,16 @@
 //! }
 //! ```
 
-use std::slice::{Iter, IterMut};
-use std::sync::mpsc;
-
 use crate::components::energy_cell::EnergyCell;
 use crate::components::resource::{BasicResourceType, Combinator, ComplexResourceType, Generator};
 use crate::components::rocket::Rocket;
+use crate::components::sunray::Sunray;
 use crate::protocols::messages::{
     ExplorerToPlanet, OrchestratorToPlanet, PlanetToExplorer, PlanetToOrchestrator,
 };
+use std::slice::{Iter, IterMut};
+use std::sync::mpsc;
+use std::time::SystemTime;
 
 /// The trait that defines the behaviour of a planet.
 ///
@@ -109,7 +110,7 @@ use crate::protocols::messages::{
 /// `state` parameter, which is passed to the methods as a mutable borrow.
 /// A response can be sent by returning an optional message of the correct type,
 /// that will be forwarded to the associated channel passed on planet construction.
-pub trait PlanetAI {
+pub trait PlanetAI: Send {
     /// Handler for messages received by the orchestrator (receiving
     /// end of the [OrchestratorToPlanet] channel).
     /// The following messages will **not** invoke this handler:
@@ -247,7 +248,7 @@ impl PlanetState {
     ///
     /// # Panics
     /// This method will panic if the index `i` is out of bounds.
-    /// Always check the number of energy cells available with [cells_count].
+    /// Always check the number of energy cells available with [PlanetState::cells_count].
     pub fn cell(&self, i: usize) -> &EnergyCell {
         &self.energy_cells[i]
     }
@@ -259,7 +260,7 @@ impl PlanetState {
     ///
     /// # Panics
     /// This method will panic if the index `i` is out of bounds.
-    /// Always check the number of energy cells available with [cells_count].
+    /// Always check the number of energy cells available with [PlanetState::cells_count].
     pub fn cell_mut(&mut self, i: usize) -> &mut EnergyCell {
         &mut self.energy_cells[i]
     }
@@ -279,6 +280,32 @@ impl PlanetState {
     /// Returns a *mutable* iterator over the energy cells owned by the planet.
     pub fn cells_iter_mut(&mut self) -> IterMut<'_, EnergyCell> {
         self.energy_cells.iter_mut()
+    }
+
+    /// Charges the first empty (discharged) cell.
+    /// Returns an optional [Sunray] if there's no cell to charge.
+    pub fn charge_cell(&mut self, sunray: Sunray) -> Option<Sunray> {
+        match self.empty_cell() {
+            None => Some(sunray),
+            Some((cell, _)) => {
+                cell.charge(sunray);
+                None
+            }
+        }
+    }
+
+    /// Returns a tuple containing a *mutable* borrow of the first empty (discharged) cell
+    /// and its index, or `None` if there isn't any.
+    pub fn empty_cell(&mut self) -> Option<(&mut EnergyCell, usize)> {
+        let idx = self.energy_cells.iter().position(|cell| !cell.is_charged());
+        idx.map(|i| (&mut self.energy_cells[i], i))
+    }
+
+    /// Returns a tuple containing a *mutable* borrow of the first full (charged) cell
+    /// and its index, or `None` if there isn't any.
+    pub fn full_cell(&mut self) -> Option<(&mut EnergyCell, usize)> {
+        let idx = self.energy_cells.iter().position(|cell| cell.is_charged());
+        idx.map(|i| (&mut self.energy_cells[i], i))
     }
 
     /// Returns `true` if the planet can have a rocket.
@@ -302,7 +329,7 @@ impl PlanetState {
     ///
     /// # Panics
     /// This method will panic if the index `i` is out of bounds.
-    /// Always check the number of energy cells available with [cells_count].
+    /// Always check the number of energy cells available with [PlanetState::cells_count].
     ///
     /// # Errors
     /// Returns an error if:
@@ -331,10 +358,10 @@ impl PlanetState {
 /// returned to the orchestrator.
 ///
 /// See module-level docs for more general info.
-pub struct Planet<T: PlanetAI> {
+pub struct Planet {
     state: PlanetState,
     planet_type: PlanetType,
-    pub ai: T,
+    pub ai: Box<dyn PlanetAI>,
     generator: Generator,
     combinator: Combinator,
 
@@ -344,7 +371,7 @@ pub struct Planet<T: PlanetAI> {
     to_explorer: mpsc::Sender<PlanetToExplorer>,
 }
 
-impl<T: PlanetAI> Planet<T> {
+impl Planet {
     /// Constructor for the [Planet] type.
     ///
     /// # Errors
@@ -356,14 +383,14 @@ impl<T: PlanetAI> Planet<T> {
     /// - `ai` - A group-defined struct implementing the [PlanetAI] trait.
     /// - `gen_rules` - A vec of [BasicResourceType] containing the basic resources the planet will be able to generate.
     /// - `comb_rules` - A vec of [ComplexResourceType] containing the complex resources the planet will be able to make.
-    /// - `orchestrator_channels` - A pair containing the [mpsc::Receiver] and [mpsc::Sender] half
+    /// - `orchestrator_channels` - A pair containing the receiver and sender half
     ///   of the channels [OrchestratorToPlanet] and [PlanetToOrchestrator].
     /// - `explorer_channels` - A pair containing the [mpsc::Receiver] and [mpsc::Sender] half
     ///   of the channels [ExplorerToPlanet] and [PlanetToExplorer].
     pub fn new(
         id: u32,
         planet_type: PlanetType,
-        ai: T,
+        ai: Box<dyn PlanetAI>,
         gen_rules: Vec<BasicResourceType>,
         comb_rules: Vec<ComplexResourceType>,
         orchestrator_channels: (
@@ -374,7 +401,7 @@ impl<T: PlanetAI> Planet<T> {
             mpsc::Receiver<ExplorerToPlanet>,
             mpsc::Sender<PlanetToExplorer>,
         ),
-    ) -> Result<Planet<T>, String> {
+    ) -> Result<Planet, String> {
         let PlanetConstraints {
             n_energy_cells,
             unbounded_gen_rules,
@@ -469,6 +496,7 @@ impl<T: PlanetAI> Planet<T> {
                         .send(PlanetToOrchestrator::AsteroidAck {
                             planet_id: self.id(),
                             rocket,
+                            timestamp: SystemTime::now(),
                         })
                         .map_err(|_| "Orchestrator disconnected".to_string())?;
                 }
@@ -537,9 +565,19 @@ impl<T: PlanetAI> Planet<T> {
         self.planet_type
     }
 
-    /// Returns an immutable borrow the planet internal state.
+    /// Returns an immutable borrow of planet's internal state.
     pub fn state(&self) -> &PlanetState {
         &self.state
+    }
+
+    /// Returns an immutable borrow of the planet generator.
+    pub fn generator(&self) -> &Generator {
+        &self.generator
+    }
+
+    /// Returns an immutable borrow of the planet combinator.
+    pub fn combinator(&self) -> &Combinator {
+        &self.combinator
     }
 }
 
@@ -618,12 +656,14 @@ mod tests {
             _generator: &Generator,
             _combinator: &Combinator,
         ) -> Option<Rocket> {
-            if let Some(idx) = state.cells_iter().position(|c| c.is_charged()) {
-                if state.build_rocket(idx).is_ok() {
-                    return state.take_rocket();
+            match state.full_cell() {
+                None => None,
+                Some((_cell, i)) => {
+                    // assert!(cell.is_charged());
+                    let _ = state.build_rocket(i);
+                    state.take_rocket()
                 }
             }
-            None
         }
 
         fn start(&mut self, _state: &PlanetState) {
@@ -714,7 +754,7 @@ mod tests {
         let valid_planet = Planet::new(
             1,
             PlanetType::A,
-            MockAI::new(),
+            Box::new(MockAI::new()),
             valid_gen,
             vec![],
             orch_ch,
@@ -727,7 +767,7 @@ mod tests {
         let invalid_empty = Planet::new(
             1,
             PlanetType::A,
-            MockAI::new(),
+            Box::new(MockAI::new()),
             vec![], // Error
             vec![],
             orch_ch,
@@ -740,7 +780,7 @@ mod tests {
         let invalid_gen = Planet::new(
             1,
             PlanetType::A,
-            MockAI::new(),
+            Box::new(MockAI::new()),
             vec![BasicResourceType::Oxygen, BasicResourceType::Hydrogen], // Error for Type A
             vec![],
             orch_ch,
@@ -767,7 +807,7 @@ mod tests {
         let mut planet = Planet::new(
             100,
             PlanetType::A,
-            MockAI::new(),
+            Box::new(MockAI::new()),
             vec![BasicResourceType::Oxygen],
             vec![],
             (rx_from_orch, tx_from_planet_orch),
@@ -836,7 +876,7 @@ mod tests {
         let mut planet = Planet::new(
             0,
             PlanetType::B,
-            MockAI::new(),
+            Box::new(MockAI::new()),
             gen_rules,
             comb_rules,
             orch_ch,

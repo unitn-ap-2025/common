@@ -6,8 +6,7 @@
 use crate::components::asteroid::Asteroid;
 use crate::components::planet::PlanetState;
 use crate::components::resource::{
-     BasicResource, BasicResourceType, ComplexResource, ComplexResourceRequest,
-    ComplexResourceType,
+    BasicResource, BasicResourceType, ComplexResource, ComplexResourceRequest, ComplexResourceType,
 };
 use crate::components::rocket::Rocket;
 use crate::components::sunray::Sunray;
@@ -41,7 +40,8 @@ pub enum PlanetToOrchestrator {
     AsteroidAck {
         planet_id: u32,
         rocket: Option<Rocket>,
-    }, //depends on how we want to manage the defense + TODO add timestamp but planet code complains
+        timestamp: SystemTime,
+    },
     StartPlanetAIResult {
         planet_id: u32,
         timestamp: SystemTime,
