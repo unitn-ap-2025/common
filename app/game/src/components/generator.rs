@@ -11,7 +11,7 @@ lazy_static! {
 }
 
 #[allow(dead_code)]
-pub(crate) struct Generator {
+pub struct Generator {
     //Private field to forbid the creation of a generator without using new()
     _private: (),
 }
@@ -19,7 +19,7 @@ pub(crate) struct Generator {
 #[allow(dead_code)]
 impl Generator {
     //New method uses the ALREADY_CREATED variable to check if the generator has already been created or not
-    pub(crate) fn new() -> Result<Self, String> {
+    pub fn new() -> Result<Self, String> {
         let mut check = ALREADY_CREATED.lock().unwrap();
         if !*check {
             *check = true;
