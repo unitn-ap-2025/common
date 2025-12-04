@@ -150,6 +150,27 @@ pub enum ExplorerToOrchestrator<T> {
     },
 }
 
+impl<T> ExplorerToOrchestrator<T> {
+    /// Helper method to extract the `explorer_id` from any message variant
+    /// without needing to match the specific enum variant.
+    pub fn explorer_id(&self) -> u32 {
+        match self {
+            Self::StartExplorerAIResult { explorer_id, .. } => *explorer_id,
+            Self::KillExplorerAIResult { explorer_id, .. } => *explorer_id,
+            Self::ResetExplorerAIResult { explorer_id, .. } => *explorer_id,
+            Self::MovedToPlanetResult { explorer_id, .. } => *explorer_id,
+            Self::CurrentPlanetResult { explorer_id, .. } => *explorer_id,
+            Self::SupportedResourceResult { explorer_id, .. } => *explorer_id,
+            Self::SupportedCombinationResult { explorer_id, .. } => *explorer_id,
+            Self::GenerateResourceResponse { explorer_id, .. } => *explorer_id,
+            Self::CombineResourceResponse { explorer_id, .. } => *explorer_id,
+            Self::BagContentResponse { explorer_id, .. } => *explorer_id,
+            Self::NeighborsRequest { explorer_id, .. } => *explorer_id,
+            Self::TravelToPlanetRequest { explorer_id, .. } => *explorer_id,
+        }
+    }
+}
+
 /// Messages sent by an `Explorer` to a `Planet`.
 pub enum ExplorerToPlanet {
     SupportedResourceRequest {
@@ -169,6 +190,20 @@ pub enum ExplorerToPlanet {
     AvailableEnergyCellRequest {
         explorer_id: u32,
     },
+}
+
+impl ExplorerToPlanet {
+    /// Helper method to extract the `explorer_id` from any message variant
+    /// without needing to match the specific enum variant.
+    pub fn explorer_id(&self) -> u32 {
+        match self {
+            ExplorerToPlanet::SupportedResourceRequest { explorer_id, .. } => *explorer_id,
+            ExplorerToPlanet::SupportedCombinationRequest { explorer_id, .. } => *explorer_id,
+            ExplorerToPlanet::GenerateResourceRequest { explorer_id, .. } => *explorer_id,
+            ExplorerToPlanet::CombineResourceRequest { explorer_id, .. } => *explorer_id,
+            ExplorerToPlanet::AvailableEnergyCellRequest { explorer_id, .. } => *explorer_id,
+        }
+    }
 }
 
 /// Messages sent by a `Planet` to an `Explorer`.
