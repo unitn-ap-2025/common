@@ -80,7 +80,7 @@ pub enum OrchestratorToExplorer {
 }
 
 /// Messages sent by an `Explorer` to the `Orchestrator`.
-pub enum ExplorerToOrchestrator {
+pub enum ExplorerToOrchestrator<T> {
     StartExplorerAIResult {
         explorer_id: u32,
     },
@@ -113,9 +113,22 @@ pub enum ExplorerToOrchestrator {
         explorer_id: u32,
         generated: Result<(), ()>,
     },
+    /// This message is for passing around the bag content and has been implemented with a generic type to let the group the freedom to implement the methods on it
+    ///
+    /// ## Example
+    /// ```
+    ///
+    /// ExplorerToOrchestrator::BagContentResponse { explorer_id , DummyBag }
+    ///
+    /// pub struct DummyBag{
+    ///     pub complex : HashMap<ComplexResourceType ,u32>,
+    ///     pub basic : HashMap<BasicResourceType ,u32>,
+    /// }
+    ///  ```
+    ///
     BagContentResponse {
         explorer_id: u32,
-        //bag_content: Box<dyn Bag<T>>, TODO: change this accordingly to resources
+        bag_content: T,
     },
     NeighborsRequest {
         explorer_id: u32,
