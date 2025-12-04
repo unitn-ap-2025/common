@@ -150,7 +150,7 @@ pub enum ExplorerToOrchestrator<T> {
     },
 }
 
-impl ExplorerToOrchestrator {
+impl<T> ExplorerToOrchestrator<T> {
     /// Helper method to extract the `explorer_id` from any message variant
     /// without needing to match the specific enum variant.
     pub fn explorer_id(&self) -> u32 {
