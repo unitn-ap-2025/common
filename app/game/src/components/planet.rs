@@ -98,7 +98,6 @@ use crate::protocols::messages::{
 };
 use std::slice::{Iter, IterMut};
 use std::sync::mpsc;
-use std::time::SystemTime;
 
 /// The trait that defines the behaviour of a planet.
 ///
