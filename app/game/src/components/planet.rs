@@ -584,7 +584,7 @@ mod tests {
     use super::*;
     use std::sync::mpsc;
     use std::thread;
-    use std::time::{Duration, SystemTime};
+    use std::time::Duration;
 
     use crate::components::asteroid::Asteroid;
     use crate::components::energy_cell::EnergyCell;
