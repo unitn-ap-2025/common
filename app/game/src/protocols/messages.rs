@@ -117,18 +117,12 @@ pub enum ExplorerToOrchestrator<T> {
     ///
     /// ## Example
     /// ```
-    /// use common_game::protocols::messages::ExplorerToOrchestrator;
-    /// use common_game::components::resource::{ComplexResourceType, BasicResourceType};
-    /// use std::collections::HashMap;
     ///
-    /// let _ = ExplorerToOrchestrator::BagContentResponse {
-    ///     explorer_id: 1,
-    ///     bag_content: DummyBag { complex: HashMap::new(), basic: HashMap::new() }
-    /// };
+    /// ExplorerToOrchestrator::BagContentResponse { explorer_id , DummyBag }
     ///
-    /// pub struct DummyBag {
-    ///     pub complex : HashMap<ComplexResourceType, u32>,
-    ///     pub basic : HashMap<BasicResourceType, u32>,
+    /// pub struct DummyBag{
+    ///     pub complex : HashMap<ComplexResourceType ,u32>,
+    ///     pub basic : HashMap<BasicResourceType ,u32>,
     /// }
     ///  ```
     ///
@@ -147,7 +141,7 @@ pub enum ExplorerToOrchestrator<T> {
     },
 }
 
-impl<T> ExplorerToOrchestrator<T> {
+impl ExplorerToOrchestrator {
     /// Helper method to extract the `explorer_id` from any message variant
     /// without needing to match the specific enum variant.
     pub fn explorer_id(&self) -> u32 {
