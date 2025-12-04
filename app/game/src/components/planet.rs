@@ -496,7 +496,6 @@ impl Planet {
                         .send(PlanetToOrchestrator::AsteroidAck {
                             planet_id: self.id(),
                             rocket,
-                            timestamp: SystemTime::now(),
                         })
                         .map_err(|_| "Orchestrator disconnected".to_string())?;
                 }

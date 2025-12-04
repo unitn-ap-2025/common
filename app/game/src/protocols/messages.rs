@@ -5,9 +5,7 @@
 
 use crate::components::asteroid::Asteroid;
 use crate::components::planet::PlanetState;
-use crate::components::resource::{
-    BasicResource, BasicResourceType, ComplexResource, ComplexResourceRequest, ComplexResourceType,
-};
+use crate::components::resource::{BasicResource, BasicResourceType, ComplexResource, ComplexResourceRequest, ComplexResourceType, GenericResource};
 use crate::components::rocket::Rocket;
 use crate::components::sunray::Sunray;
 use std::collections::HashSet;
@@ -19,15 +17,22 @@ use std::sync::mpsc;
 /// Messages sent by the `Orchestrator` to a `Planet`.
 
 pub enum OrchestratorToPlanet {
+    ///This variant is used to send a [Sunray] to a planet
     Sunray(Sunray),
+    ///This variant is used to send an [Asteroid] to a planet
     Asteroid(Asteroid),
+    ///This variant is used to start a Planet Ai and restart it if it is stopped
     StartPlanetAI,
+    ///This variant is used to pause the planet Ai
     StopPlanetAI,
+    ///This variant is used to obtain a Planet Internal State
     InternalStateRequest,
+    ///This variant is used to send the new [mpsc::Sender] of the incoming explorer, see the sequence diagram for more info
     IncomingExplorerRequest {
         explorer_id: u32,
         new_mpsc_sender: mpsc::Sender<PlanetToExplorer>,
     },
+    ///This variant is used to notify the planet to drop the [mpsc::Sender] of the outgoing explorer
     OutgoingExplorerRequest {
         explorer_id: u32,
     },
@@ -35,27 +40,36 @@ pub enum OrchestratorToPlanet {
 
 /// Messages sent by a `Planet` to the `Orchestrator`.
 pub enum PlanetToOrchestrator {
+    ///This variant is used to acknowledge the obtained [Sunray]
     SunrayAck {
         planet_id: u32,
     },
+    ///This variant is used to acknowledge the obtained [Asteroid] and sends back the optional [Rocket] of the defending planet
     AsteroidAck {
         planet_id: u32,
         rocket: Option<Rocket>,
     },
+    ///This variant is used to acknowledge the start of the Planet Ai
     StartPlanetAIResult {
         planet_id: u32,
     },
+    ///This variant is used to acknowledge the stop of the Planet Ai
     StopPlanetAIResult {
         planet_id: u32,
     },
+    ///This variant is used to send back the Planet State
     InternalStateResponse {
         planet_id: u32,
         planet_state: PlanetState,
     },
+    ///This variant is used to acknowledge the incoming explorer
+    ///Encapsulates a [Result] with a possible [Err] String representing an error occurred
     IncomingExplorerResponse {
         planet_id: u32,
         res: Result<(), String>,
     },
+    ///This variant is used to acknowledge the outgoing explorer
+    ///Encapsulates a [Result] with a possible [Err] String representing an error occurred
     OutgoingExplorerResponse {
         planet_id: u32,
         res: Result<(), String>,
@@ -64,56 +78,75 @@ pub enum PlanetToOrchestrator {
 
 /// Messages sent by the `Orchestrator` to an `Explorer`.
 pub enum OrchestratorToExplorer {
+    ///This variant is used to start the Explorer AI
     StartExplorerAI,
+    ///This variant is used to reset the Explorer AI
     ResetExplorerAI,
+    ///This variant is used to kill the Explorer AI
     KillExplorerAI,
+    ///This variant is used to send a [mpsc::Sender] to the new planet
     MoveToPlanet {
         sender_to_new_planet: Option<mpsc::Sender<ExplorerToPlanet>>,
     }, //none if explorer asks to move to a non-adjacent planet,
+    ///This variant is used to ask the ID of the Planet in which the Explorer is currently located
     CurrentPlanetRequest,
+    ///This variant is used to enforce the Explorer to ask the supported Resources on the Planet
     SupportedResourceRequest,
+    ///This variant is used to enforce the Explorer to ask the supported Combinations on the Planet
     SupportedCombinationRequest,
+    ///This variant is used to enforce the Explorer to ask the Planet to Generate a [BasicResource]
     GenerateResourceRequest {
         to_generate: BasicResourceType,
     },
+    ///This variant is used to enforce the Explorer to ask the Planet to Generate a [ComplexResource] using the [ComplexResourceRequest]
     CombineResourceRequest(ComplexResourceRequest),
     BagContentRequest,
+    ///This variant is used to send to the Explorer its neighbors' IDs
     NeighborsResponse {
         neighbors: Vec<u32>,
-    }, //do we want to send ids of the planets?
+    },
 }
 
 
 /// Messages sent by an `Explorer` to the `Orchestrator`.
 pub enum ExplorerToOrchestrator {
+    ///Acknowledge of [OrchestratorToExplorer::StartExplorerAI]
     StartExplorerAIResult {
         explorer_id: u32,
     },
+    ///Acknowledge of [OrchestratorToExplorer::KillExplorerAI]
     KillExplorerAIResult {
         explorer_id: u32,
     },
+    ///Acknowledge of [OrchestratorToExplorer::ResetExplorerAI]
     ResetExplorerAIResult {
         explorer_id: u32,
     },
+    ///Acknowledge of [OrchestratorToExplorer::MoveToPlanet]
     MovedToPlanetResult {
         explorer_id: u32,
     },
+    ///This variant is used to send the ID of the current planet on which the Explorer is located
     CurrentPlanetResult {
         explorer_id: u32,
         planet_id: u32,
     },
+    ///This variant is used to send the list of the available [BasicResourceType] in the planet
     SupportedResourceResult {
         explorer_id: u32,
         supported_resources: HashSet<BasicResourceType>,
     },
+    ///This variant is used to send the list of the available [ComplexResourceType] in the planet
     SupportedCombinationResult {
         explorer_id: u32,
         combination_list: HashSet<ComplexResourceType>,
     },
+    ///This variant holds a [Result] for the Orchestrator to know if the requested [BasicResource] has been generated
     GenerateResourceResponse {
         explorer_id: u32,
         generated: Result<(), ()>,
-    }, //tells to the orchestrator if the asked resource has been generated
+    },
+    /// This variant holds a [Result] for the Orchestrator to know if the requested [ComplexResource] has been generated
     CombineResourceResponse {
         explorer_id: u32,
         generated: Result<(), ()>,
@@ -122,10 +155,12 @@ pub enum ExplorerToOrchestrator {
         explorer_id: u32,
         //bag_content: Box<dyn Bag<T>>, TODO: change this accordingly to resources
     },
+    ///This variant asks the Orchestrator for the list of neighbors Planets to travel to
     NeighborsRequest {
         explorer_id: u32,
         current_planet_id: u32,
     },
+    ///This variant asks the Orchestrator to be sent to the specified Planet
     TravelToPlanetRequest {
         explorer_id: u32,
         current_planet_id: u32,
@@ -135,20 +170,25 @@ pub enum ExplorerToOrchestrator {
 
 /// Messages sent by an `Explorer` to a `Planet`.
 pub enum ExplorerToPlanet {
+    ///This variant is used to ask the Planet for the available [BasicResourceType]
     SupportedResourceRequest {
         explorer_id: u32,
     },
+    ///This variant is used to ask the Planet for the available [ComplexResourceType]
     SupportedCombinationRequest {
         explorer_id: u32,
     },
+    ///This variant is used to ask the Planet to generate a [BasicResource]
     GenerateResourceRequest {
         explorer_id: u32,
         resource: BasicResourceType,
     },
+    ///This variant is used to ask the Planet to generate a [ComplexResource] using the [ComplexResourceRequest]
     CombineResourceRequest {
         explorer_id: u32,
         msg: ComplexResourceRequest,
     },
+    ///This variant is used to ask the Planet for the available energy_cells number
     AvailableEnergyCellRequest {
         explorer_id: u32,
     },
@@ -157,18 +197,25 @@ pub enum ExplorerToPlanet {
 
 /// Messages sent by a `Planet` to an `Explorer`.
 pub enum PlanetToExplorer {
+    ///This variant is used to send the available [BasicResourceType] list to the Explorer
     SupportedResourceResponse {
         resource_list: HashSet<BasicResourceType>,
     },
+    ///This variant is used to send the available [ComplexResourceType] list to the Explorer
     SupportedCombinationResponse {
         combination_list: HashSet<ComplexResourceType>,
     },
+    ///This variant is used to send the Optional [BasicResource] generated or [None] in case of errors
     GenerateResourceResponse {
         resource: Option<BasicResource>,
     },
+    ///This variant is used to send the [ComplexResource] generated
+    ///It contains a [Result] giving back the [ComplexResource] in case of success
+    ///and a triplet containing an error string and the two [GenericResource] provided by the Explorer
     CombineResourceResponse {
-        complex_response: Option<ComplexResource>,
+        complex_response: Result<ComplexResource, (String, GenericResource, GenericResource)>,
     },
+    ///This variant is used to send the number of avilable energy cells to the Explorer
     AvailableEnergyCellResponse {
         available_cells: u32,
     },
