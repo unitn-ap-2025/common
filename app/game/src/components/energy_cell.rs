@@ -1,12 +1,12 @@
 //! EnergyCell module
 //!
-//! This module defines the `EnergyCell` type, a simple component that can store
-//! energy after being exposed to a `Sunray`. It supports charging, discharging,
+//! This module defines the [EnergyCell] type, a simple component that can store
+//! energy after being exposed to a [Sunray]. It supports charging, discharging,
 //! and checking whether the cell currently holds energy.
 
 use crate::components::sunray::Sunray;
 
-/// Represents an energy storage cell that can be charged by receiving a `Sunray`.
+/// Represents an energy storage cell that can be charged by receiving a [Sunray].
 #[allow(dead_code)]
 pub struct EnergyCell {
     /// Indicates whether the cell currently holds energy.
@@ -27,7 +27,7 @@ impl EnergyCell {
         Self { charge: false }
     }
 
-    /// Charges the cell using a `Sunray`.
+    /// Charges the cell using a [Sunray].
     ///
     /// If the cell is already charged, the sunray has no additional effect.
     ///
@@ -56,7 +56,7 @@ impl EnergyCell {
         }
     }
 
-    /// Returns `true` if the cell currently holds a charge.
+    /// Returns `true` if the cell currently holds a charge, false otherwise
     pub fn is_charged(&self) -> bool {
         self.charge
     }
@@ -64,7 +64,7 @@ impl EnergyCell {
 
 #[cfg(test)]
 mod tests {
-    //! Unit tests for the `EnergyCell` type.
+    //! Unit tests for the [EnergyCell] type.
     //!
     //! These tests validate the expected behavior of construction, charging,
     //! discharging, and error handling.
