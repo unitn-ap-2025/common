@@ -86,20 +86,17 @@ pub enum OrchestratorToExplorer {
     ///This variant is used to enforce the Explorer to ask the supported Combinations on the Planet
     SupportedCombinationRequest,
     ///This variant is used to enforce the Explorer to ask the Planet to Generate a [BasicResource]
-    GenerateResourceRequest {
-        to_generate: BasicResourceType,
-    },
+    GenerateResourceRequest { to_generate: BasicResourceType },
     ///This variant is used to enforce the Explorer to ask the Planet to Generate a [ComplexResource] using the [ComplexResourceRequest]
     CombineResourceRequest(ComplexResourceRequest),
+    ///This variant is used to ask the content of the Explorer Bag
     BagContentRequest,
     ///This variant is used to send to the Explorer its neighbors' IDs
-    NeighborsResponse {
-        neighbors: Vec<u32>,
-    },
+    NeighborsResponse { neighbors: Vec<u32> },
 }
 
 /// Messages sent by an `Explorer` to the `Orchestrator`.
-pub enum ExplorerToOrchestrator {
+pub enum ExplorerToOrchestrator<T> {
     ///Acknowledge of [OrchestratorToExplorer::StartExplorerAI]
     StartExplorerAIResult { explorer_id: u32 },
     ///Acknowledge of [OrchestratorToExplorer::KillExplorerAI]
@@ -130,10 +127,29 @@ pub enum ExplorerToOrchestrator {
         explorer_id: u32,
         generated: Result<(), ()>,
     },
-    BagContentResponse {
-        explorer_id: u32,
-        //bag_content: Box<dyn Bag<T>>, TODO: change this accordingly to resources
-    },
+    /// This message is for passing around the bag content and has been implemented with a generic type to let the group the freedom to implement the methods on it
+    ///
+    /// ## Example
+    /// ```ignore
+    /// use std::collections::HashMap;
+    /// use common_game::components::resource::{ComplexResourceType, BasicResourceType};
+    /// use common_game::protocols::messages::ExplorerToOrchestrator;
+    ///
+    /// pub struct DummyBag {
+    ///     pub complex: HashMap<ComplexResourceType, u32>,
+    ///     pub basic: HashMap<BasicResourceType, u32>,
+    /// }
+    ///
+    /// let message = ExplorerToOrchestrator::BagContentResponse {
+    ///     explorer_id: 1,
+    ///     bag_content: DummyBag {
+    ///         complex: HashMap::new(),
+    ///         basic: HashMap::new(),
+    ///     }
+    /// };
+    /// ```
+    ///
+    BagContentResponse { explorer_id: u32, bag_content: T },
     ///This variant asks the Orchestrator for the list of neighbors Planets to travel to
     NeighborsRequest {
         explorer_id: u32,
