@@ -5,19 +5,16 @@
 
 use crate::components::asteroid::Asteroid;
 use crate::components::planet::PlanetState;
-use crate::components::resource::{ BasicResource, BasicResourceType, ComplexResource, ComplexResourceRequest,
-    ComplexResourceType,
+use crate::components::resource::{
+    BasicResource, BasicResourceType, ComplexResource, ComplexResourceRequest, ComplexResourceType,
+    GenericResource,
 };
 use crate::components::rocket::Rocket;
 use crate::components::sunray::Sunray;
 use std::collections::HashSet;
 use std::sync::mpsc;
 
-
-
-
 /// Messages sent by the `Orchestrator` to a `Planet`.
-
 pub enum OrchestratorToPlanet {
     Sunray(Sunray),
     Asteroid(Asteroid),
@@ -50,7 +47,7 @@ pub enum PlanetToOrchestrator {
     },
     InternalStateResponse {
         planet_id: u32,
-        planet_state: PlanetState,
+        planet_state: PlanetState, //TODO: Change this when planet creates ad hoc struct
     },
     IncomingExplorerResponse {
         planet_id: u32,
@@ -80,9 +77,8 @@ pub enum OrchestratorToExplorer {
     BagContentRequest,
     NeighborsResponse {
         neighbors: Vec<u32>,
-    }, //do we want to send ids of the planets?
+    },
 }
-
 
 /// Messages sent by an `Explorer` to the `Orchestrator`.
 pub enum ExplorerToOrchestrator {
@@ -152,7 +148,6 @@ pub enum ExplorerToPlanet {
     AvailableEnergyCellRequest {
         explorer_id: u32,
     },
-    
 }
 
 /// Messages sent by a `Planet` to an `Explorer`.
@@ -164,10 +159,10 @@ pub enum PlanetToExplorer {
         combination_list: HashSet<ComplexResourceType>,
     },
     GenerateResourceResponse {
-        resource: Option<BasicResource>,
+        resource: Result<BasicResource, String>,
     },
     CombineResourceResponse {
-        complex_response: Option<ComplexResource>,
+        complex_response: Result<ComplexResource, (String, GenericResource, GenericResource)>,
     },
     AvailableEnergyCellResponse {
         available_cells: u32,
