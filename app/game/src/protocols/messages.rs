@@ -116,15 +116,24 @@ pub enum ExplorerToOrchestrator<T> {
     /// This message is for passing around the bag content and has been implemented with a generic type to let the group the freedom to implement the methods on it
     ///
     /// ## Example
-    /// ```
+    /// ```ignore
+    /// use std::collections::HashMap;
+    /// use common_game::components::resource::{ComplexResourceType, BasicResourceType};
+    /// use common_game::protocols::messages::ExplorerToOrchestrator;
     ///
-    /// ExplorerToOrchestrator::BagContentResponse { explorer_id , DummyBag }
-    ///
-    /// pub struct DummyBag{
-    ///     pub complex : HashMap<ComplexResourceType ,u32>,
-    ///     pub basic : HashMap<BasicResourceType ,u32>,
+    /// pub struct DummyBag {
+    ///     pub complex: HashMap<ComplexResourceType, u32>,
+    ///     pub basic: HashMap<BasicResourceType, u32>,
     /// }
-    ///  ```
+    ///
+    /// let message = ExplorerToOrchestrator::BagContentResponse {
+    ///     explorer_id: 1,
+    ///     bag_content: DummyBag {
+    ///         complex: HashMap::new(),
+    ///         basic: HashMap::new(),
+    ///     }
+    /// };
+    /// ```
     ///
     BagContentResponse {
         explorer_id: u32,

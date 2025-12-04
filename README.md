@@ -1,4 +1,4 @@
-[![Image Dev](https://github.com/unitn-ap-2025/common/actions/workflows/image-dev.yaml/badge.svg)](https://github.com/unitn-ap-2025/common/actions/workflows/image-dev.yaml) [![CI](https://github.com/unitn-ap-2025/common/actions/workflows/ci.yaml/badge.svg)](https://github.com/unitn-ap-2025/common/actions/workflows/ci.yaml) [![CD](https://github.com/unitn-ap-2025/common/actions/workflows/cd.yaml/badge.svg)](https://github.com/unitn-ap-2025/common/actions/workflows/cd.yaml) [![Docs](https://github.com/unitn-ap-2025/common/actions/workflows/docs.yaml/badge.svg)](https://github.com/unitn-ap-2025/common/actions/workflows/docs.yaml)
+[![Image Dev](https://github.com/unitn-ap-2025/common/actions/workflows/image-dev.yaml/badge.svg)](https://github.com/unitn-ap-2025/common/actions/workflows/image-dev.yaml) [![CI](https://github.com/unitn-ap-2025/common/actions/workflows/ci.yaml/badge.svg)](https://github.com/unitn-ap-2025/common/actions/workflows/ci.yaml) [![Docs](https://github.com/unitn-ap-2025/common/actions/workflows/docs.yaml/badge.svg)](https://github.com/unitn-ap-2025/common/actions/workflows/docs.yaml)
 
 # Common
 
