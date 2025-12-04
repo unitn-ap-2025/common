@@ -69,7 +69,6 @@
 //!     rx_orchestrator: mpsc::Receiver<messages::OrchestratorToPlanet>,
 //!     tx_orchestrator: mpsc::Sender<messages::PlanetToOrchestrator>,
 //!     rx_explorer: mpsc::Receiver<messages::ExplorerToPlanet>,
-//!     tx_explorer: mpsc::Sender<messages::PlanetToExplorer>
 //! ) -> Planet {
 //!     let id = 1;
 //!     let ai = AI {};
@@ -84,7 +83,7 @@
 //!         gen_rules,
 //!         comb_rules,
 //!         (rx_orchestrator, tx_orchestrator),
-//!         (rx_explorer, tx_explorer)
+//!         rx_explorer,
 //!     ).unwrap() // Don't call .unwrap()! You should do error checking instead.
 //! }
 //! ```
@@ -96,6 +95,7 @@ use crate::components::sunray::Sunray;
 use crate::protocols::messages::{
     ExplorerToPlanet, OrchestratorToPlanet, PlanetToExplorer, PlanetToOrchestrator,
 };
+use std::collections::HashMap;
 use std::slice::{Iter, IterMut};
 use std::sync::mpsc;
 
@@ -116,6 +116,8 @@ pub trait PlanetAI: Send {
     /// - [OrchestratorToPlanet::StartPlanetAI] (see [PlanetAI::start])
     /// - [OrchestratorToPlanet::StopPlanetAI] (see [PlanetAI::stop])
     /// - [OrchestratorToPlanet::Asteroid] (see [PlanetAI::handle_asteroid])
+    /// - [OrchestratorToPlanet::IncomingExplorerRequest], as this will be handled automatically by the planet
+    /// - [OrchestratorToPlanet::OutgoingExplorerRequest] (same as previous one)
     ///
     /// Check [PlanetAI] docs for general meaning of the parameters and return type.
     fn handle_orchestrator_msg(
@@ -366,8 +368,8 @@ pub struct Planet {
 
     from_orchestrator: mpsc::Receiver<OrchestratorToPlanet>,
     to_orchestrator: mpsc::Sender<PlanetToOrchestrator>,
-    from_explorer: mpsc::Receiver<ExplorerToPlanet>,
-    to_explorer: mpsc::Sender<PlanetToExplorer>,
+    from_explorers: mpsc::Receiver<ExplorerToPlanet>,
+    to_explorers: HashMap<u32, mpsc::Sender<PlanetToExplorer>>,
 }
 
 impl Planet {
@@ -384,8 +386,8 @@ impl Planet {
     /// - `comb_rules` - A vec of [ComplexResourceType] containing the complex resources the planet will be able to make.
     /// - `orchestrator_channels` - A pair containing the receiver and sender half
     ///   of the channels [OrchestratorToPlanet] and [PlanetToOrchestrator].
-    /// - `explorer_channels` - A pair containing the [mpsc::Receiver] and [mpsc::Sender] half
-    ///   of the channels [ExplorerToPlanet] and [PlanetToExplorer].
+    /// - `explorers_receiver` - The receiver half of the [ExplorerToPlanet] channel
+    ///   where all explorers send messages to this planet (when they're visiting it).
     pub fn new(
         id: u32,
         planet_type: PlanetType,
@@ -396,10 +398,7 @@ impl Planet {
             mpsc::Receiver<OrchestratorToPlanet>,
             mpsc::Sender<PlanetToOrchestrator>,
         ),
-        explorer_channels: (
-            mpsc::Receiver<ExplorerToPlanet>,
-            mpsc::Sender<PlanetToExplorer>,
-        ),
+        explorers_receiver: mpsc::Receiver<ExplorerToPlanet>,
     ) -> Result<Planet, String> {
         let PlanetConstraints {
             n_energy_cells,
@@ -408,7 +407,6 @@ impl Planet {
             n_comb_rules,
         } = planet_type.constraints();
         let (from_orchestrator, to_orchestrator) = orchestrator_channels;
-        let (from_explorer, to_explorer) = explorer_channels;
 
         if gen_rules.is_empty() {
             Err("gen_rules is empty".to_string())
@@ -447,8 +445,8 @@ impl Planet {
                 combinator,
                 from_orchestrator,
                 to_orchestrator,
-                from_explorer,
-                to_explorer,
+                from_explorers: explorers_receiver,
+                to_explorers: HashMap::new(),
             })
         }
     }
@@ -498,6 +496,31 @@ impl Planet {
                         })
                         .map_err(|_| "Orchestrator disconnected".to_string())?;
                 }
+                Ok(OrchestratorToPlanet::IncomingExplorerRequest {
+                    explorer_id,
+                    new_mpsc_sender,
+                }) => {
+                    self.to_explorers.insert(explorer_id, new_mpsc_sender); // add new explorer channel
+
+                    // send ack back to orchestrator
+                    self.to_orchestrator
+                        .send(PlanetToOrchestrator::IncomingExplorerResponse {
+                            planet_id: self.id(),
+                            res: Ok(()),
+                        })
+                        .map_err(|_| "Orchestrator disconnected".to_string())?;
+                }
+                Ok(OrchestratorToPlanet::OutgoingExplorerRequest { explorer_id }) => {
+                    self.to_explorers.remove(&explorer_id); // remove outgoing explorer channel
+
+                    // send ack back to orchestrator
+                    self.to_orchestrator
+                        .send(PlanetToOrchestrator::OutgoingExplorerResponse {
+                            planet_id: self.id(),
+                            res: Ok(()),
+                        })
+                        .map_err(|_| "Orchestrator disconnected".to_string())?;
+                }
                 Ok(msg) => {
                     self.ai
                         .handle_orchestrator_msg(
@@ -518,23 +541,29 @@ impl Planet {
             }
 
             // explorer incoming message polling
-            match self.from_explorer.try_recv() {
+            match self.from_explorers.try_recv() {
                 Ok(msg) => {
-                    if let Some(response) = self.ai.handle_explorer_msg(
-                        &mut self.state,
-                        &self.generator,
-                        &self.combinator,
-                        msg,
-                    ) {
-                        self.to_explorer
+                    let explorer_id = msg.explorer_id();
+
+                    if let Some(to_explorer) = self.to_explorers.get(&explorer_id)
+                        && let Some(response) = self.ai.handle_explorer_msg(
+                            &mut self.state,
+                            &self.generator,
+                            &self.combinator,
+                            msg,
+                        )
+                    {
+                        to_explorer
                             .send(response)
-                            .unwrap_or_else(|_| println!("No explorer connected!"))
+                            .map_err(|_| format!("Explorer {} disconnected", explorer_id))?;
                     }
                 }
 
                 Err(mpsc::TryRecvError::Disconnected) => {}
                 Err(mpsc::TryRecvError::Empty) => {}
             }
+
+            // sleep
         }
     }
 
@@ -641,9 +670,14 @@ mod tests {
             _state: &mut PlanetState,
             _generator: &Generator,
             _combinator: &Combinator,
-            _msg: ExplorerToPlanet,
+            msg: ExplorerToPlanet,
         ) -> Option<PlanetToExplorer> {
-            None
+            match msg {
+                ExplorerToPlanet::AvailableEnergyCellRequest { .. } => {
+                    Some(PlanetToExplorer::AvailableEnergyCellResponse { available_cells: 5 })
+                }
+                _ => None,
+            }
         }
 
         fn handle_asteroid(
@@ -673,27 +707,48 @@ mod tests {
 
     // --- Helper for creating dummy channels ---
     // Returns the halves required by Planet::new
-    type OrchChannels = (
+    type PlanetOrchHalfChannels = (
         mpsc::Receiver<OrchestratorToPlanet>,
         mpsc::Sender<PlanetToOrchestrator>,
     );
-    type ExplChannels = (
+
+    type PlanetExplHalfChannels = (
         mpsc::Receiver<ExplorerToPlanet>,
         mpsc::Sender<PlanetToExplorer>,
     );
 
-    fn get_test_channels() -> (OrchChannels, ExplChannels) {
+    type OrchPlanetHalfChannels = (
+        mpsc::Sender<OrchestratorToPlanet>,
+        mpsc::Receiver<PlanetToOrchestrator>,
+    );
+
+    type ExplPlanetHalfChannels = (
+        mpsc::Sender<ExplorerToPlanet>,
+        mpsc::Receiver<PlanetToExplorer>,
+    );
+
+    fn get_test_channels() -> (
+        PlanetOrchHalfChannels,
+        PlanetExplHalfChannels,
+        OrchPlanetHalfChannels,
+        ExplPlanetHalfChannels,
+    ) {
         // Channel 1: Orchestrator -> Planet
-        let (_tx_orch_in, rx_orch_in) = mpsc::channel::<OrchestratorToPlanet>();
+        let (tx_orch_in, rx_orch_in) = mpsc::channel::<OrchestratorToPlanet>();
         // Channel 2: Planet -> Orchestrator
-        let (tx_orch_out, _rx_orch_out) = mpsc::channel::<PlanetToOrchestrator>();
+        let (tx_orch_out, rx_orch_out) = mpsc::channel::<PlanetToOrchestrator>();
 
         // Channel 3: Explorer -> Planet
-        let (_tx_expl_in, rx_expl_in) = mpsc::channel::<ExplorerToPlanet>();
+        let (tx_expl_in, rx_expl_in) = mpsc::channel::<ExplorerToPlanet>();
         // Channel 4: Planet -> Explorer
-        let (tx_expl_out, _rx_expl_out) = mpsc::channel::<PlanetToExplorer>();
+        let (tx_expl_out, rx_expl_out) = mpsc::channel::<PlanetToExplorer>();
 
-        ((rx_orch_in, tx_orch_out), (rx_expl_in, tx_expl_out))
+        (
+            (rx_orch_in, tx_orch_out),
+            (rx_expl_in, tx_expl_out),
+            (tx_orch_in, rx_orch_out),
+            (tx_expl_in, rx_expl_out),
+        )
     }
 
     // --- Unit Tests: Planet State Logic ---
@@ -744,7 +799,7 @@ mod tests {
     #[test]
     fn test_planet_construction_constraints() {
         // 1. Valid Construction
-        let (orch_ch, expl_ch) = get_test_channels();
+        let (orch_ch, expl_ch, _, _) = get_test_channels();
         let valid_gen = vec![BasicResourceType::Oxygen];
 
         let valid_planet = Planet::new(
@@ -754,12 +809,12 @@ mod tests {
             valid_gen,
             vec![],
             orch_ch,
-            expl_ch,
+            expl_ch.0,
         );
         assert!(valid_planet.is_ok());
 
         // 2. Invalid: Empty Gen Rules
-        let (orch_ch, expl_ch) = get_test_channels();
+        let (orch_ch, expl_ch, _, _) = get_test_channels();
         let invalid_empty = Planet::new(
             1,
             PlanetType::A,
@@ -767,12 +822,12 @@ mod tests {
             vec![], // Error
             vec![],
             orch_ch,
-            expl_ch,
+            expl_ch.0,
         );
         assert!(invalid_empty.is_err());
 
         // 3. Invalid: Too Many Gen Rules for Type A
-        let (orch_ch, expl_ch) = get_test_channels();
+        let (orch_ch, expl_ch, _, _) = get_test_channels();
         let invalid_gen = Planet::new(
             1,
             PlanetType::A,
@@ -780,7 +835,7 @@ mod tests {
             vec![BasicResourceType::Oxygen, BasicResourceType::Hydrogen], // Error for Type A
             vec![],
             orch_ch,
-            expl_ch,
+            expl_ch.0,
         );
         assert!(invalid_gen.is_err());
     }
@@ -789,15 +844,11 @@ mod tests {
 
     #[test]
     fn test_planet_run_loop_survival() {
-        // 1. Orch -> Planet
-        let (tx_to_planet_orch, rx_from_orch) = mpsc::channel::<OrchestratorToPlanet>();
-        // 2. Planet -> Orch
-        let (tx_from_planet_orch, rx_to_orch) = mpsc::channel::<PlanetToOrchestrator>();
+        let (planet_orch_ch, planet_expl_ch, orch_planet_ch, _) = get_test_channels();
 
-        // 3. Expl -> Planet
-        let (_tx_to_planet_expl, rx_from_expl) = mpsc::channel::<ExplorerToPlanet>();
-        // 4. Planet -> Expl
-        let (tx_from_planet_expl, _rx_from_planet) = mpsc::channel::<PlanetToExplorer>();
+        let (rx_from_orch, tx_from_planet_orch) = planet_orch_ch;
+        let (rx_from_expl, _) = planet_expl_ch;
+        let (tx_to_planet_orch, rx_to_orch) = orch_planet_ch;
 
         // Build Planet
         let mut planet = Planet::new(
@@ -807,7 +858,7 @@ mod tests {
             vec![BasicResourceType::Oxygen],
             vec![],
             (rx_from_orch, tx_from_planet_orch),
-            (rx_from_expl, tx_from_planet_expl),
+            rx_from_expl,
         )
         .expect("Failed to create planet");
 
@@ -866,7 +917,7 @@ mod tests {
 
     #[test]
     fn test_resource_creation() {
-        let (orch_ch, expl_ch) = get_test_channels();
+        let (orch_ch, expl_ch, _, _) = get_test_channels();
         let gen_rules = vec![BasicResourceType::Oxygen, BasicResourceType::Hydrogen];
         let comb_rules = vec![ComplexResourceType::Water];
         let mut planet = Planet::new(
@@ -876,7 +927,7 @@ mod tests {
             gen_rules,
             comb_rules,
             orch_ch,
-            expl_ch,
+            expl_ch.0,
         )
         .unwrap();
 
@@ -907,5 +958,113 @@ mod tests {
 
         let diamond = combinator.make_water(hydrogen, oxygen, cell);
         assert!(diamond.is_ok());
+
+        // try to gen resource not contained in the planet recipes
+        let carbon = generator.make_carbon(cell);
+        assert!(carbon.is_err());
+    }
+
+    #[test]
+    fn test_explorer_comms() {
+        // 1. Setup Channels using the new helper
+        let (
+            planet_orch_channels,
+            planet_expl_channels,
+            (orch_tx, orch_rx),
+            (expl_tx_global, _expl_rx_global),
+        ) = get_test_channels();
+
+        // 2. Setup Planet
+        // Note: Planet::new only takes the Receiver half for explorers,
+        // so we extract it from the tuple. The Sender half in the tuple is unused
+        // by the planet itself (since it uses dynamic senders), but kept for type consistency.
+        let (planet_expl_rx, _) = planet_expl_channels;
+
+        let mut planet = Planet::new(
+            1,
+            PlanetType::A,
+            Box::new(MockAI::new()),
+            vec![BasicResourceType::Oxygen],
+            vec![],
+            planet_orch_channels,
+            planet_expl_rx,
+        )
+        .expect("Failed to create planet");
+
+        // Spawn planet thread
+        let handle = thread::spawn(move || {
+            let _ = planet.run();
+        });
+
+        // 3. Start Planet
+        orch_tx.send(OrchestratorToPlanet::StartPlanetAI).unwrap();
+        thread::sleep(Duration::from_millis(50));
+
+        // 4. Setup Local Explorer Channels (Simulating Explorer 101)
+        // We create a dedicated channel for this specific explorer interaction
+        let explorer_id = 101;
+        let (expl_tx_local, expl_rx_local) = mpsc::channel::<PlanetToExplorer>();
+
+        // 5. Send IncomingExplorerRequest (Orchestrator -> Planet)
+        orch_tx
+            .send(OrchestratorToPlanet::IncomingExplorerRequest {
+                explorer_id,
+                new_mpsc_sender: expl_tx_local,
+            })
+            .unwrap();
+
+        // 6. Verify Ack from Planet
+        match orch_rx.recv_timeout(Duration::from_millis(200)) {
+            Ok(PlanetToOrchestrator::IncomingExplorerResponse { planet_id, res }) => {
+                assert_eq!(planet_id, 1);
+                assert!(res.is_ok());
+            }
+            _ => panic!("Expected IncomingExplorerResponse"),
+        }
+
+        // 7. Test Interaction (Explorer -> Planet -> Explorer)
+        // Explorer sends a request using the GLOBAL channel, but includes its ID
+        expl_tx_global
+            .send(ExplorerToPlanet::AvailableEnergyCellRequest { explorer_id })
+            .unwrap();
+
+        // Verify Explorer receives response on the LOCAL channel
+        match expl_rx_local.recv_timeout(Duration::from_millis(200)) {
+            Ok(PlanetToExplorer::AvailableEnergyCellResponse { available_cells }) => {
+                assert_eq!(available_cells, 5);
+            }
+            _ => panic!("Expected AvailableEnergyCellResponse"),
+        }
+
+        // 8. Send OutgoingExplorerRequest (Orchestrator -> Planet)
+        orch_tx
+            .send(OrchestratorToPlanet::OutgoingExplorerRequest { explorer_id })
+            .unwrap();
+
+        // 9. Verify Ack from Planet
+        match orch_rx.recv_timeout(Duration::from_millis(200)) {
+            Ok(PlanetToOrchestrator::OutgoingExplorerResponse { planet_id, res }) => {
+                assert_eq!(planet_id, 1);
+                assert!(res.is_ok());
+            }
+            _ => panic!("Expected OutgoingExplorerResponse"),
+        }
+
+        // 10. Verify Isolation
+        // Explorer sends another request
+        expl_tx_global
+            .send(ExplorerToPlanet::AvailableEnergyCellRequest { explorer_id })
+            .unwrap();
+
+        // We expect NO response on expl_rx_local
+        let result = expl_rx_local.recv_timeout(Duration::from_millis(200));
+        assert!(
+            result.is_err(),
+            "Planet responded to explorer after it left!"
+        );
+
+        // 11. Cleanup
+        drop(orch_tx);
+        let _ = handle.join();
     }
 }
