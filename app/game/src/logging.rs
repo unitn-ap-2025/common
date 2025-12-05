@@ -51,7 +51,7 @@ pub type Payload = BTreeMap<String, String>;
 pub struct LogEvent {
     pub timestamp_unix: i64,
     pub sender_type: ActorType,
-    pub sender_id: String,
+    pub sender_id: u64,
     pub receiver_type: ActorType,
     pub receiver_id: String,
     pub event_type: EventType,
