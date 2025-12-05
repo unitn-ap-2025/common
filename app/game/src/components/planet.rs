@@ -167,8 +167,8 @@ pub trait PlanetAI: Send {
     fn stop(&mut self, state: &PlanetState);
 }
 
-// Defines the planet rules constraints
-struct PlanetConstraints {
+/// Contains planet rules constraints (see [PlanetType]).
+pub struct PlanetConstraints {
     n_energy_cells: usize,
     unbounded_gen_rules: bool,
     can_have_rocket: bool,
@@ -190,9 +190,9 @@ impl PlanetType {
     const N_ENERGY_CELLS: usize = 5;
     const N_RESOURCE_COMB_RULES: usize = 6;
 
-    // Returns a tuple with the constraints associated with the planet type,
-    // as described in the project specifications.
-    fn constraints(&self) -> PlanetConstraints {
+    /// Returns a tuple with the constraints associated to the planet type,
+    /// as described in the project specifications.
+    pub fn constraints(&self) -> PlanetConstraints {
         match self {
             PlanetType::A => PlanetConstraints {
                 n_energy_cells: Self::N_ENERGY_CELLS,
@@ -349,6 +349,34 @@ impl PlanetState {
             })
         }
     }
+
+    /// Returns a *dummy* clone of this state.
+    pub fn to_dummy(&self) -> DummyPlanetState {
+        DummyPlanetState {
+            energy_cells: self
+                .energy_cells
+                .iter()
+                .map(|cell| cell.is_charged())
+                .collect(),
+            charged_cells_count: self
+                .energy_cells
+                .iter()
+                .filter(|cell| cell.is_charged())
+                .count(),
+            has_rocket: self.has_rocket(),
+        }
+    }
+}
+
+/// This is a dummy struct containing an overview of the internal state of a planet.
+/// Use [PlanetState::to_dummy] to construct one.
+/// 
+/// Used in [PlanetToOrchestrator::InternalStateResponse].
+#[derive(Debug, Clone)]
+pub struct DummyPlanetState {
+    pub energy_cells: Vec<bool>,
+    pub charged_cells_count: usize,
+    pub has_rocket: bool,
 }
 
 /// Main, top-level planet definition. This type is built on top of
@@ -451,17 +479,17 @@ impl Planet {
         }
     }
 
-    /// Starts the planet in a *stopped* state, waiting for a [OrchestratorToPlanet::StartPlanetAI],
+    /// Starts the planet in a *stopped* state, waiting for a [OrchestratorToPlanet::StartPlanetAI] message,
     /// then invokes [PlanetAI::start] and runs the main message polling loop.
-    /// See [PlanetAI] docs to know more about when handlers are invoked and how the planet reacts
+    /// See [PlanetAI] docs to know more about when message handlers are invoked and how the planet reacts
     /// to the different messages.
     ///
     /// This method is *blocking* and should be called by the orchestrator in a separate thread.
+    /// It returns with an [Ok] when the planet has been **destroyed**.
     ///
     /// # Errors
-    /// This method should not return, but if it does, it returns an error message
-    /// describing the cause. For now, the only possible cause of error is orchestrator disconnection
-    /// from one of the channels.
+    /// If the orchestrator or one of the explorers disconnects from the channels, this will return
+    /// an [Err].
     pub fn run(&mut self) -> Result<(), String> {
         // run the planet stopped by default
         // and wait for a StartPlanetAI message
@@ -471,13 +499,9 @@ impl Planet {
 
         // maybe spawn a thread for async event handling ?
         loop {
-            // TODO: disconnection error handling
-
             // orchestrator incoming message polling
             match self.from_orchestrator.try_recv() {
-                // TODO: do something with the StartPlanetAI message content
                 Ok(OrchestratorToPlanet::StartPlanetAI) => {}
-                // TODO: do something with the StopPlanetAI message content
                 Ok(OrchestratorToPlanet::StopPlanetAI) => {
                     self.ai.stop(&self.state);
                     self.wait_for_start()?; // blocking wait
@@ -492,9 +516,13 @@ impl Planet {
                     self.to_orchestrator
                         .send(PlanetToOrchestrator::AsteroidAck {
                             planet_id: self.id(),
-                            rocket,
+                            destroyed: rocket.is_none(),
                         })
                         .map_err(|_| "Orchestrator disconnected".to_string())?;
+
+                    if rocket.is_none() {
+                        return Ok(());
+                    }
                 }
                 Ok(OrchestratorToPlanet::IncomingExplorerRequest {
                     explorer_id,
@@ -571,10 +599,8 @@ impl Planet {
     // a StartPlanetAI message is received
     fn wait_for_start(&self) -> Result<(), String> {
         loop {
-            // TODO: error handling
             let recv_re = self.from_orchestrator.recv();
             match recv_re {
-                // TODO: do something with the StartPlanetAI message content
                 Ok(OrchestratorToPlanet::StartPlanetAI) => return Ok(()),
                 Err(_) => return Err("Orchestrator disconnected!".to_string()),
                 _ => {}
@@ -897,10 +923,12 @@ mod tests {
         // 4. Expect Survival (Ack with Some(Rocket))
         match rx_to_orch.recv_timeout(Duration::from_millis(200)) {
             Ok(PlanetToOrchestrator::AsteroidAck {
-                planet_id, rocket, ..
+                planet_id,
+                destroyed,
+                ..
             }) => {
                 assert_eq!(planet_id, 100);
-                assert!(rocket.is_some(), "Planet failed to build rocket!");
+                assert!(!destroyed, "Planet failed to build rocket!");
             }
             Ok(_) => panic!("Wrong message type"),
             Err(_) => panic!("Timeout waiting for AsteroidAck"),
