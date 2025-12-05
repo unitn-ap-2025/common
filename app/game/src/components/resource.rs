@@ -38,6 +38,16 @@ pub enum GenericResource {
     ComplexResources(ComplexResource),
 }
 
+impl GenericResource {
+    /// Gets the ResourceType for this GenericResource
+    pub fn get_type(&self) -> ResourceType {
+        match self {
+            GenericResource::BasicResources(basic) => ResourceType::Basic(basic.get_type()),
+            GenericResource::ComplexResources(complex) => ResourceType::Complex(complex.get_type()),
+        }
+    }
+}
+
 impl Hash for ComplexResourceType {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         std::mem::discriminant(self).hash(state);
@@ -227,6 +237,23 @@ macro_rules! define_resources {
             pub enum ComplexResourceType {
                 $($complex,)*
             }
+
+            impl BasicResource {
+                pub fn get_type(&self) -> BasicResourceType {
+                    match self {
+                        $( BasicResource:: $basic (_) => BasicResourceType::$basic, )*
+                    }
+                }
+            }
+
+            impl ComplexResource {
+                pub fn get_type(&self) -> ComplexResourceType {
+                    match self {
+                         $( ComplexResource:: $complex (_) => ComplexResourceType::$complex, )*
+                    }
+                }
+            }
+
 
             impl PartialEq<Self> for ComplexResourceType {
                 fn eq(&self, other: &Self) -> bool {
