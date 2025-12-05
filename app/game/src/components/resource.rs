@@ -227,7 +227,81 @@ macro_rules! define_resources {
                         }
                  }
 
+
+
+
             )*
+
+
+            impl ResourceType{
+                    paste::paste! {
+                        $( pub fn [< make_ $complex:lower >] () -> Self {
+                                ResourceType::Complex(ComplexResourceType::$complex)
+                            }
+                        )*
+                    }
+
+                    paste::paste! {
+                        $( pub fn [< is_ $complex:lower >] (&self) -> bool {
+                             if let   ResourceType::Complex(ComplexResourceType::$complex) = self {
+                            true
+                        }
+                            else { false
+                            }
+                            }
+                        )*
+                    }
+
+                     paste::paste! {
+                        $( pub fn [< make_ $basic:lower >] () -> Self {
+                                ResourceType::Basic(BasicResourceType::$basic)
+                            }
+                        )*
+                    }
+
+                    paste::paste! {
+                        $( pub fn [< is_ $basic:lower >] (&self) -> bool {
+                             if let   ResourceType::Basic(BasicResourceType::$basic) = self {
+                            true
+                        }
+                            else { false
+                            }
+                            }
+                        )*
+                    }
+
+            }
+
+            impl BasicResourceType{
+
+                    paste::paste! {
+                        $( pub fn [< is_ $basic:lower >] (&self) -> bool {
+                             if let   BasicResourceType::$basic = self {
+                            true
+                        }
+                            else { false
+                            }
+                            }
+                        )*
+                    }
+
+            }
+
+
+               impl ComplexResourceType{
+
+                    paste::paste! {
+                        $( pub fn [< is_ $complex:lower >] (&self) -> bool {
+                             if let   ComplexResourceType::$complex = self {
+                            true
+                        }
+                            else { false
+                            }
+                            }
+                        )*
+                    }
+
+            }
 
              ///
              /// Identifies a [`ComplexResource`]
@@ -244,6 +318,36 @@ macro_rules! define_resources {
                         $( BasicResource:: $basic (_) => BasicResourceType::$basic, )*
                     }
                 }
+                paste::paste!{
+                           $( pub fn [< to_ $basic:lower >] (self) -> Result< $basic , String> {
+                            match self {
+                                BasicResource:: $basic (h) => Ok(h) ,
+                                _ => Err( "Different type found".into() )
+                            }
+                        }
+                    )*
+                }
+            }
+            impl GenericResource {
+                paste::paste! {
+                   $( pub fn [< to_ $complex:lower >] (self) -> Result< $complex,String> {
+                            match self {
+                                GenericResource::ComplexResources(ComplexResource:: $complex(h))  => Ok(h),
+                                _ => Err("Different type found".into())
+                            }
+                        }
+                    )*
+                }
+
+                paste::paste! {
+                   $( pub fn [< to_ $basic:lower >] (self) -> Result< $basic , String> {
+                            match self {
+                                GenericResource::BasicResources(BasicResource:: $basic(h))  => Ok(h),
+                                _ => Err("Different type found".into())
+                            }
+                        }
+                    )*
+                }
             }
 
             impl ComplexResource {
@@ -251,6 +355,16 @@ macro_rules! define_resources {
                     match self {
                          $( ComplexResource:: $complex (_) => ComplexResourceType::$complex, )*
                     }
+                }
+
+                paste::paste!{
+                   $( pub fn [< to_ $complex:lower >] (self) -> Result< $complex,String> {
+                    match self {
+                        ComplexResource:: $complex( h) => Ok(h) ,
+                        _ => Err("Different type found".into())
+                    }
+                }
+                )*
                 }
             }
 
