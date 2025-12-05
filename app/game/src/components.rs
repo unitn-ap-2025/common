@@ -3,6 +3,6 @@ pub mod energy_cell;
 pub mod planet;
 pub mod resource;
 
-pub mod generator;
+pub mod forge;
 pub mod rocket;
 pub mod sunray;

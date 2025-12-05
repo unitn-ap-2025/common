@@ -11,19 +11,19 @@ lazy_static! {
 }
 
 #[allow(dead_code)]
-pub struct Generator {
+pub struct Forge {
     //Private field to forbid the creation of a generator without using new()
     _private: (),
 }
 
 #[allow(dead_code)]
-impl Generator {
+impl Forge {
     //New method uses the ALREADY_CREATED variable to check if the generator has already been created or not
     pub fn new() -> Result<Self, String> {
         let mut check = ALREADY_CREATED.lock().unwrap();
         if !*check {
             *check = true;
-            Ok(Generator { _private: () })
+            Ok(Forge { _private: () })
         } else {
             Err("Another generator has already been created".into())
         }
@@ -52,8 +52,8 @@ mod tests {
             *created = false;
         }
 
-        let g = Generator::new();
-        assert!(g.is_ok(), "The first generator should be created correctly");
+        let g = Forge::new();
+        assert!(g.is_ok(), "The first forge should be created correctly");
     }
 
     #[test]
@@ -64,10 +64,10 @@ mod tests {
             *created = false;
         }
 
-        let g0 = Generator::new();
+        let g0 = Forge::new();
         assert!(g0.is_ok());
 
-        let g1 = Generator::new();
-        assert!(g1.is_err(), "The second Generator should return an error");
+        let g1 = Forge::new();
+        assert!(g1.is_err(), "The second forge should return an error");
     }
 }
