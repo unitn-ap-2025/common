@@ -370,7 +370,7 @@ impl PlanetState {
 
 /// This is a dummy struct containing an overview of the internal state of a planet.
 /// Use [PlanetState::to_dummy] to construct one.
-/// 
+///
 /// Used in [PlanetToOrchestrator::InternalStateResponse].
 #[derive(Debug, Clone)]
 pub struct DummyPlanetState {
@@ -503,7 +503,13 @@ impl Planet {
             match self.from_orchestrator.try_recv() {
                 Ok(OrchestratorToPlanet::StartPlanetAI) => {}
                 Ok(OrchestratorToPlanet::StopPlanetAI) => {
+                    self.to_orchestrator
+                        .send(PlanetToOrchestrator::StopPlanetAIResult {
+                            planet_id: self.id(),
+                        })
+                        .map_err(|_| "Orchestrator disconnected")?;
                     self.ai.stop(&self.state);
+
                     self.wait_for_start()?; // blocking wait
 
                     // restart AI
@@ -601,8 +607,15 @@ impl Planet {
         loop {
             let recv_re = self.from_orchestrator.recv();
             match recv_re {
-                Ok(OrchestratorToPlanet::StartPlanetAI) => return Ok(()),
-                Err(_) => return Err("Orchestrator disconnected!".to_string()),
+                Ok(OrchestratorToPlanet::StartPlanetAI) => {
+                    return self
+                        .to_orchestrator
+                        .send(PlanetToOrchestrator::StartPlanetAIResult {
+                            planet_id: self.id(),
+                        })
+                        .map_err(|_| "Orchestrator disconnected".to_string());
+                }
+                Err(_) => return Err("Orchestrator disconnected".to_string()),
                 _ => {}
             }
         }
@@ -899,6 +912,10 @@ mod tests {
         tx_to_planet_orch
             .send(OrchestratorToPlanet::StartPlanetAI)
             .unwrap();
+        match rx_to_orch.recv_timeout(Duration::from_millis(50)) {
+            Ok(PlanetToOrchestrator::StartPlanetAIResult { .. }) => {}
+            _ => panic!("Planet sent incorrect response"),
+        }
         thread::sleep(Duration::from_millis(50));
 
         // 2. Send Sunray
@@ -938,6 +955,10 @@ mod tests {
         tx_to_planet_orch
             .send(OrchestratorToPlanet::StopPlanetAI)
             .unwrap();
+        match rx_to_orch.recv_timeout(Duration::from_millis(200)) {
+            Ok(PlanetToOrchestrator::StopPlanetAIResult { .. }) => {}
+            _ => panic!("Planet sent incorrect response"),
+        }
 
         drop(tx_to_planet_orch);
         let _ = handle.join();
@@ -1026,6 +1047,10 @@ mod tests {
 
         // 3. Start Planet
         orch_tx.send(OrchestratorToPlanet::StartPlanetAI).unwrap();
+        match orch_rx.recv_timeout(Duration::from_millis(50)) {
+            Ok(PlanetToOrchestrator::StartPlanetAIResult { .. }) => {}
+            _ => panic!("Planet sent incorrect response"),
+        }
         thread::sleep(Duration::from_millis(50));
 
         // 4. Setup Local Explorer Channels (Simulating Explorer 101)
