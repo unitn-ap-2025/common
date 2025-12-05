@@ -63,7 +63,7 @@ impl LogEvent {
     /// Helper: create an event with the current UNIX timestamp.
     pub fn new(
         sender_type: ActorType,
-        sender_id: impl Into<String>,
+        sender_id: impl Into<u64>,
         receiver_type: ActorType,
         receiver_id: impl Into<String>,
         event_type: EventType,
@@ -85,6 +85,12 @@ impl LogEvent {
             channel,
             payload,
         }
+    }
+
+    pub fn id_from_str(s: &str) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        s.hash(&mut hasher);
+        hasher.finish()
     }
 
     /// Emit this event using the `log` crate.
