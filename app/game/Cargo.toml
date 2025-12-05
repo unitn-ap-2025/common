@@ -8,8 +8,5 @@ path = "src/lib.rs"
 
 [dependencies]
 paste = "1.0.15"
-<<<<<<< HEAD
 log = "0.4"
-=======
 lazy_static = "1.5.0"
->>>>>>> 76b469911aa6872bd84534133942960f67889b02

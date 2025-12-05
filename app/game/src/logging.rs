@@ -1,5 +1,10 @@
 use std::collections::BTreeMap;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::Hash;
+use std::hash::Hasher;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+use std::fmt;
 
 /// Who is sending / receiving this event.
 #[derive(Debug, Clone)]
@@ -107,5 +112,22 @@ impl LogEvent {
             Debug => log::debug!("{:?}", self),
             Trace => log::trace!("{:?}", self),
         }
+    }
+}
+
+impl fmt::Display for LogEvent {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "LogEvent {{ ts: {}, sender: {:?}#{}, receiver: {:?}/{}, event: {:?}, channel: {:?}, payload: {:?} }}",
+            self.timestamp_unix,
+            self.sender_type,
+            self.sender_id,
+            self.receiver_type,
+            self.receiver_id,
+            self.event_type,
+            self.channel,
+            self.payload
+        )
     }
 }
