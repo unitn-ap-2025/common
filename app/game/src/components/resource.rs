@@ -145,6 +145,28 @@ macro_rules! define_resources {
                     }
                 }
 
+                impl $basic {
+                    pub fn to_type(&self) -> ResourceType {
+                        match self {
+                            $basic { .. } =>  ResourceType::Basic(BasicResourceType::$basic),
+                        }
+                    }
+                    pub fn to_generic(self) -> GenericResource {
+                        GenericResource::BasicResources( BasicResource::$basic(self) )
+                    }
+
+                    pub fn to_basic(self) -> BasicResource {
+                        BasicResource::$basic( self )
+                    }
+                    pub fn to_basic_type(&self) -> BasicResourceType {
+                        match self {
+                            $basic { .. } =>  BasicResourceType::$basic,
+                        }
+                    }
+                }
+
+
+
                 impl Resource for $basic {
                     fn to_static_str(&self) -> &'static str {
                         stringify!($basic)
@@ -174,6 +196,26 @@ macro_rules! define_resources {
                         stringify!($complex)
                     }
                 }
+
+                 impl $complex {
+                        pub fn to_type(&self) -> ResourceType {
+                            match self {
+                                $complex { .. } =>  ResourceType::Complex(ComplexResourceType::$complex),
+                            }
+                        }
+                        pub fn to_generic(self) -> GenericResource {
+                            GenericResource::ComplexResources( ComplexResource::$complex(self) )
+                        }
+
+                        pub fn to_complex(self) -> ComplexResource {
+                            ComplexResource::$complex( self )
+                        }
+                        pub fn to_complex_type(&self) -> ComplexResourceType {
+                            match self {
+                                $complex { .. } =>  ComplexResourceType::$complex,
+                            }
+                        }
+                 }
 
             )*
 
