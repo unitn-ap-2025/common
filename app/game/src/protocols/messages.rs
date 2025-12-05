@@ -4,7 +4,7 @@
 //! components using [mpsc] channels.
 
 use crate::components::asteroid::Asteroid;
-use crate::components::planet::PlanetState;
+use crate::components::planet::DummyPlanetState;
 use crate::components::resource::{
     BasicResource, BasicResourceType, ComplexResource, ComplexResourceRequest, ComplexResourceType,
     GenericResource,
@@ -51,7 +51,7 @@ pub enum PlanetToOrchestrator {
     ///This variant is used to send back the Planet State
     InternalStateResponse {
         planet_id: u32,
-        planet_state: PlanetState,
+        planet_state: DummyPlanetState,
     },
     ///This variant is used to acknowledge the incoming explorer
     ///Encapsulates a [Result] with a possible [Err] String representing an error occurred

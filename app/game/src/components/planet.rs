@@ -167,8 +167,8 @@ pub trait PlanetAI: Send {
     fn stop(&mut self, state: &PlanetState);
 }
 
-// Defines the planet rules constraints
-struct PlanetConstraints {
+/// Contains planet rules constraints (see [PlanetType]).
+pub struct PlanetConstraints {
     n_energy_cells: usize,
     unbounded_gen_rules: bool,
     can_have_rocket: bool,
@@ -190,9 +190,9 @@ impl PlanetType {
     const N_ENERGY_CELLS: usize = 5;
     const N_RESOURCE_COMB_RULES: usize = 6;
 
-    // Returns a tuple with the constraints associated with the planet type,
-    // as described in the project specifications.
-    fn constraints(&self) -> PlanetConstraints {
+    /// Returns a tuple with the constraints associated to the planet type,
+    /// as described in the project specifications.
+    pub fn constraints(&self) -> PlanetConstraints {
         match self {
             PlanetType::A => PlanetConstraints {
                 n_energy_cells: Self::N_ENERGY_CELLS,
@@ -349,6 +349,31 @@ impl PlanetState {
             })
         }
     }
+
+    pub fn to_dummy(&self) -> DummyPlanetState {
+        DummyPlanetState {
+            energy_cells: self
+                .energy_cells
+                .iter()
+                .map(|cell| cell.is_charged())
+                .collect(),
+            charged_cells_count: self
+                .energy_cells
+                .iter()
+                .filter(|cell| cell.is_charged())
+                .count(),
+            has_rocket: self.has_rocket(),
+        }
+    }
+}
+
+/// This is a dummy struct containing an overview of the internal state of a planet.
+/// Used in [PlanetToOrchestrator::InternalStateResponse]
+#[derive(Debug, Clone)]
+pub struct DummyPlanetState {
+    pub energy_cells: Vec<bool>,
+    pub charged_cells_count: usize,
+    pub has_rocket: bool,
 }
 
 /// Main, top-level planet definition. This type is built on top of
