@@ -24,7 +24,7 @@ pub trait Resource: Display {
 /// Identifies a resource which could be both [`BasicResourceType`] and [`ComplexResourceType`]
 /// without actually containing the underlying resource,
 ///
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy ,  PartialEq, Eq, Hash)]
 pub enum ResourceType {
     Basic(BasicResourceType),
     Complex(ComplexResourceType),
