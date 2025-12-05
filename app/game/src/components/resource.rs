@@ -20,20 +20,6 @@ pub trait Resource: Display {
     fn to_static_str(&self) -> &'static str;
 }
 
-pub trait Bag<T> {
-    fn is_empty(&self) -> bool;
-    fn contains_complex(&self, complex: ComplexResourceType) -> bool;
-    fn contains_basic(&self, basic: BasicResourceType) -> bool;
-    fn contains(&self, generic: ResourceType) -> bool;
-    fn size(&self) -> u32;
-    fn capacity(&self) -> u32;
-    fn get_count(&self, generic: ResourceType) -> u32;
-    fn get_count_complex(&self, complex: ComplexResourceType) -> u32;
-    fn get_count_basic(&self, basic: BasicResourceType) -> u32;
-    ///this method serves the purpose to the expose the internal structure of the bag and is implementation dependent,
-    fn get_content(&self) -> T;
-}
-
 ///
 /// Identifies a resource which could be both [`BasicResourceType`] and [`ComplexResourceType`]
 /// without actually containing the underlying resource,
@@ -46,7 +32,7 @@ pub enum ResourceType {
 ///
 /// Contains a resource which could be both [`BasicResource`] and [`ComplexResource`]
 ///
-#[derive(Debug,PartialEq,Eq,Hash )]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum GenericResource {
     BasicResources(BasicResource),
     ComplexResources(ComplexResource),
