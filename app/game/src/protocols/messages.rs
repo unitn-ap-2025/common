@@ -1,7 +1,7 @@
 //! # Communication protocol messages
 //!
 //! Defines the types of messages exchanged between the different
-//! components using [mpsc] channels.
+//! components using [crossbeam_channel] channels.
 
 use crate::components::asteroid::Asteroid;
 use crate::components::planet::DummyPlanetState;
@@ -10,8 +10,8 @@ use crate::components::resource::{
     GenericResource,
 };
 use crate::components::sunray::Sunray;
+use crossbeam_channel::Sender;
 use std::collections::HashSet;
-use std::sync::mpsc;
 
 /// Messages sent by the `Orchestrator` to a `Planet`.
 pub enum OrchestratorToPlanet {
@@ -25,12 +25,12 @@ pub enum OrchestratorToPlanet {
     StopPlanetAI,
     /// This variant is used to obtain a Planet Internal State
     InternalStateRequest,
-    /// This variant is used to send the new [mpsc::Sender] of the incoming explorer, see the sequence diagram for more info
+    /// This variant is used to send the new [Sender] of the incoming explorer, see the sequence diagram for more info
     IncomingExplorerRequest {
         explorer_id: u32,
-        new_mpsc_sender: mpsc::Sender<PlanetToExplorer>,
+        new_mpsc_sender: Sender<PlanetToExplorer>,
     },
-    /// This variant is used to notify the planet to drop the [mpsc::Sender] of the outgoing explorer
+    /// This variant is used to notify the planet to drop the [Sender] of the outgoing explorer
     OutgoingExplorerRequest { explorer_id: u32 },
 }
 
@@ -72,9 +72,9 @@ pub enum OrchestratorToExplorer {
     ResetExplorerAI,
     /// This variant is used to kill the Explorer AI
     KillExplorerAI,
-    /// This variant is used to send a [mpsc::Sender] to the new planet
+    /// This variant is used to send a [Sender] to the new planet
     MoveToPlanet {
-        sender_to_new_planet: Option<mpsc::Sender<ExplorerToPlanet>>,
+        sender_to_new_planet: Option<Sender<ExplorerToPlanet>>,
     }, //none if explorer asks to move to a non-adjacent planet,
     /// This variant is used to ask the ID of the Planet in which the Explorer is currently located
     CurrentPlanetRequest,

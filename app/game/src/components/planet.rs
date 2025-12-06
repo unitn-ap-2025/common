@@ -17,7 +17,7 @@
 //! Intended usage (for planet definition, by groups):
 //!
 //! ```
-//! use std::sync::mpsc;
+//! use crossbeam_channel::{Sender, Receiver};
 //! use common_game::components::planet::{Planet, PlanetAI, PlanetState, PlanetType};
 //! use common_game::components::resource::{Combinator, Generator};
 //! use common_game::components::rocket::Rocket;
@@ -66,9 +66,9 @@
 //! // This is the group's "export" function. It will be called by
 //! // the orchestrator to spawn your planet.
 //! pub fn create_planet(
-//!     rx_orchestrator: mpsc::Receiver<messages::OrchestratorToPlanet>,
-//!     tx_orchestrator: mpsc::Sender<messages::PlanetToOrchestrator>,
-//!     rx_explorer: mpsc::Receiver<messages::ExplorerToPlanet>,
+//!     rx_orchestrator: Receiver<messages::OrchestratorToPlanet>,
+//!     tx_orchestrator: Sender<messages::PlanetToOrchestrator>,
+//!     rx_explorer: Receiver<messages::ExplorerToPlanet>,
 //! ) -> Planet {
 //!     let id = 1;
 //!     let ai = AI {};
@@ -95,9 +95,9 @@ use crate::components::sunray::Sunray;
 use crate::protocols::messages::{
     ExplorerToPlanet, OrchestratorToPlanet, PlanetToExplorer, PlanetToOrchestrator,
 };
+use crossbeam_channel::{Receiver, Sender, select};
 use std::collections::HashMap;
 use std::slice::{Iter, IterMut};
-use std::sync::mpsc;
 
 /// The trait that defines the behaviour of a planet.
 ///
@@ -394,10 +394,10 @@ pub struct Planet {
     generator: Generator,
     combinator: Combinator,
 
-    from_orchestrator: mpsc::Receiver<OrchestratorToPlanet>,
-    to_orchestrator: mpsc::Sender<PlanetToOrchestrator>,
-    from_explorers: mpsc::Receiver<ExplorerToPlanet>,
-    to_explorers: HashMap<u32, mpsc::Sender<PlanetToExplorer>>,
+    from_orchestrator: Receiver<OrchestratorToPlanet>,
+    to_orchestrator: Sender<PlanetToOrchestrator>,
+    from_explorers: Receiver<ExplorerToPlanet>,
+    to_explorers: HashMap<u32, Sender<PlanetToExplorer>>,
 }
 
 impl Planet {
@@ -422,11 +422,8 @@ impl Planet {
         ai: Box<dyn PlanetAI>,
         gen_rules: Vec<BasicResourceType>,
         comb_rules: Vec<ComplexResourceType>,
-        orchestrator_channels: (
-            mpsc::Receiver<OrchestratorToPlanet>,
-            mpsc::Sender<PlanetToOrchestrator>,
-        ),
-        explorers_receiver: mpsc::Receiver<ExplorerToPlanet>,
+        orchestrator_channels: (Receiver<OrchestratorToPlanet>, Sender<PlanetToOrchestrator>),
+        explorers_receiver: Receiver<ExplorerToPlanet>,
     ) -> Result<Planet, String> {
         let PlanetConstraints {
             n_energy_cells,
@@ -491,92 +488,93 @@ impl Planet {
     /// If the orchestrator or one of the explorers disconnects from the channels, this will return
     /// an [Err].
     pub fn run(&mut self) -> Result<(), String> {
+        const ORCH_DISCONNECT_ERR: &str = "Orchestrator disconnected.";
+
         // run the planet stopped by default
         // and wait for a StartPlanetAI message
         self.wait_for_start()?;
 
         self.ai.start(&self.state);
 
-        // maybe spawn a thread for async event handling ?
         loop {
-            // orchestrator incoming message polling
-            match self.from_orchestrator.try_recv() {
-                Ok(OrchestratorToPlanet::StartPlanetAI) => {}
-                Ok(OrchestratorToPlanet::StopPlanetAI) => {
-                    self.to_orchestrator
-                        .send(PlanetToOrchestrator::StopPlanetAIResult {
-                            planet_id: self.id(),
-                        })
-                        .map_err(|_| "Orchestrator disconnected")?;
-                    self.ai.stop(&self.state);
+            select! {
+                // wait for orchestrator message
+                recv(self.from_orchestrator) -> msg => match msg {
+                    Ok(OrchestratorToPlanet::StartPlanetAI) => {}
+                    Ok(OrchestratorToPlanet::StopPlanetAI) => {
+                        self.to_orchestrator
+                            .send(PlanetToOrchestrator::StopPlanetAIResult {
+                                planet_id: self.id(),
+                            })
+                            .map_err(|_| ORCH_DISCONNECT_ERR.to_string())?;
+                        self.ai.stop(&self.state);
 
-                    self.wait_for_start()?; // blocking wait
+                        self.wait_for_start()?; // blocking wait
 
-                    // restart AI
-                    self.ai.start(&self.state)
-                }
-                Ok(OrchestratorToPlanet::Asteroid(_)) => {
-                    let rocket =
-                        self.ai
-                            .handle_asteroid(&mut self.state, &self.generator, &self.combinator);
-                    self.to_orchestrator
-                        .send(PlanetToOrchestrator::AsteroidAck {
-                            planet_id: self.id(),
-                            destroyed: rocket.is_none(),
-                        })
-                        .map_err(|_| "Orchestrator disconnected".to_string())?;
-
-                    if rocket.is_none() {
-                        return Ok(());
+                        // restart AI
+                        self.ai.start(&self.state)
                     }
-                }
-                Ok(OrchestratorToPlanet::IncomingExplorerRequest {
-                    explorer_id,
-                    new_mpsc_sender,
-                }) => {
-                    self.to_explorers.insert(explorer_id, new_mpsc_sender); // add new explorer channel
+                    Ok(OrchestratorToPlanet::Asteroid(_)) => {
+                        let rocket =
+                            self.ai
+                                .handle_asteroid(&mut self.state, &self.generator, &self.combinator);
 
-                    // send ack back to orchestrator
-                    self.to_orchestrator
-                        .send(PlanetToOrchestrator::IncomingExplorerResponse {
-                            planet_id: self.id(),
-                            res: Ok(()),
-                        })
-                        .map_err(|_| "Orchestrator disconnected".to_string())?;
-                }
-                Ok(OrchestratorToPlanet::OutgoingExplorerRequest { explorer_id }) => {
-                    self.to_explorers.remove(&explorer_id); // remove outgoing explorer channel
+                        self.to_orchestrator
+                            .send(PlanetToOrchestrator::AsteroidAck {
+                                planet_id: self.id(),
+                                destroyed: rocket.is_none(),
+                            })
+                            .map_err(|_| ORCH_DISCONNECT_ERR.to_string())?;
 
-                    // send ack back to orchestrator
-                    self.to_orchestrator
-                        .send(PlanetToOrchestrator::OutgoingExplorerResponse {
-                            planet_id: self.id(),
-                            res: Ok(()),
-                        })
-                        .map_err(|_| "Orchestrator disconnected".to_string())?;
-                }
-                Ok(msg) => {
-                    self.ai
-                        .handle_orchestrator_msg(
-                            &mut self.state,
-                            &self.generator,
-                            &self.combinator,
-                            msg,
-                        )
-                        .map(|response| self.to_orchestrator.send(response))
-                        .transpose()
-                        .map_err(|_| "Orchestrator disconnected".to_string())?;
-                }
+                        if rocket.is_none() {
+                            return Ok(());
+                        }
+                    }
+                    Ok(OrchestratorToPlanet::IncomingExplorerRequest {
+                        explorer_id,
+                        new_mpsc_sender,
+                    }) => {
+                        self.to_explorers.insert(explorer_id, new_mpsc_sender); // add new explorer channel
 
-                Err(mpsc::TryRecvError::Disconnected) => {
-                    return Err("Orchestrator disconnected".to_string());
-                }
-                Err(mpsc::TryRecvError::Empty) => {}
-            }
+                        // send ack back to orchestrator
+                        self.to_orchestrator
+                            .send(PlanetToOrchestrator::IncomingExplorerResponse {
+                                planet_id: self.id(),
+                                res: Ok(()),
+                            })
+                            .map_err(|_| ORCH_DISCONNECT_ERR.to_string())?;
+                    }
+                    Ok(OrchestratorToPlanet::OutgoingExplorerRequest { explorer_id }) => {
+                        self.to_explorers.remove(&explorer_id); // remove outgoing explorer channel
 
-            // explorer incoming message polling
-            match self.from_explorers.try_recv() {
-                Ok(msg) => {
+                        // send ack back to orchestrator
+                        self.to_orchestrator
+                            .send(PlanetToOrchestrator::OutgoingExplorerResponse {
+                                planet_id: self.id(),
+                                res: Ok(()),
+                            })
+                            .map_err(|_| ORCH_DISCONNECT_ERR.to_string())?;
+                    }
+                    Ok(msg) => {
+                        self.ai
+                            .handle_orchestrator_msg(
+                                &mut self.state,
+                                &self.generator,
+                                &self.combinator,
+                                msg,
+                            )
+                            .map(|response| self.to_orchestrator.send(response))
+                            .transpose()
+                            .map_err(|_| ORCH_DISCONNECT_ERR.to_string())?;
+                    }
+
+                    Err(_) => {
+                        return Err(ORCH_DISCONNECT_ERR.to_string())
+                    }
+                },
+
+                // wait for explorer message
+                recv(self.from_explorers) -> msg => if let Ok(msg) = msg {
                     let explorer_id = msg.explorer_id();
 
                     if let Some(to_explorer) = self.to_explorers.get(&explorer_id)
@@ -589,15 +587,10 @@ impl Planet {
                     {
                         to_explorer
                             .send(response)
-                            .map_err(|_| format!("Explorer {} disconnected", explorer_id))?;
+                            .map_err(|_| format!("Explorer {} disconnected.", explorer_id))?;
                     }
                 }
-
-                Err(mpsc::TryRecvError::Disconnected) => {}
-                Err(mpsc::TryRecvError::Empty) => {}
             }
-
-            // sleep
         }
     }
 
@@ -650,7 +643,7 @@ impl Planet {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::mpsc;
+    use crossbeam_channel::{Receiver, Sender, unbounded};
     use std::thread;
     use std::time::Duration;
 
@@ -746,25 +739,13 @@ mod tests {
 
     // --- Helper for creating dummy channels ---
     // Returns the halves required by Planet::new
-    type PlanetOrchHalfChannels = (
-        mpsc::Receiver<OrchestratorToPlanet>,
-        mpsc::Sender<PlanetToOrchestrator>,
-    );
+    type PlanetOrchHalfChannels = (Receiver<OrchestratorToPlanet>, Sender<PlanetToOrchestrator>);
 
-    type PlanetExplHalfChannels = (
-        mpsc::Receiver<ExplorerToPlanet>,
-        mpsc::Sender<PlanetToExplorer>,
-    );
+    type PlanetExplHalfChannels = (Receiver<ExplorerToPlanet>, Sender<PlanetToExplorer>);
 
-    type OrchPlanetHalfChannels = (
-        mpsc::Sender<OrchestratorToPlanet>,
-        mpsc::Receiver<PlanetToOrchestrator>,
-    );
+    type OrchPlanetHalfChannels = (Sender<OrchestratorToPlanet>, Receiver<PlanetToOrchestrator>);
 
-    type ExplPlanetHalfChannels = (
-        mpsc::Sender<ExplorerToPlanet>,
-        mpsc::Receiver<PlanetToExplorer>,
-    );
+    type ExplPlanetHalfChannels = (Sender<ExplorerToPlanet>, Receiver<PlanetToExplorer>);
 
     fn get_test_channels() -> (
         PlanetOrchHalfChannels,
@@ -773,14 +754,14 @@ mod tests {
         ExplPlanetHalfChannels,
     ) {
         // Channel 1: Orchestrator -> Planet
-        let (tx_orch_in, rx_orch_in) = mpsc::channel::<OrchestratorToPlanet>();
+        let (tx_orch_in, rx_orch_in) = unbounded::<OrchestratorToPlanet>();
         // Channel 2: Planet -> Orchestrator
-        let (tx_orch_out, rx_orch_out) = mpsc::channel::<PlanetToOrchestrator>();
+        let (tx_orch_out, rx_orch_out) = unbounded::<PlanetToOrchestrator>();
 
         // Channel 3: Explorer -> Planet
-        let (tx_expl_in, rx_expl_in) = mpsc::channel::<ExplorerToPlanet>();
+        let (tx_expl_in, rx_expl_in) = unbounded::<ExplorerToPlanet>();
         // Channel 4: Planet -> Explorer
-        let (tx_expl_out, rx_expl_out) = mpsc::channel::<PlanetToExplorer>();
+        let (tx_expl_out, rx_expl_out) = unbounded::<PlanetToExplorer>();
 
         (
             (rx_orch_in, tx_orch_out),
@@ -904,7 +885,13 @@ mod tests {
         // Spawn thread
         let handle = thread::spawn(move || {
             let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                let _ = planet.run();
+                let res = planet.run();
+                match res {
+                    Ok(_) => {}
+                    Err(err) => {
+                        dbg!(err);
+                    }
+                }
             }));
         });
 
@@ -1042,7 +1029,13 @@ mod tests {
 
         // Spawn planet thread
         let handle = thread::spawn(move || {
-            let _ = planet.run();
+            let res = planet.run();
+            match res {
+                Ok(_) => {}
+                Err(err) => {
+                    dbg!(err);
+                }
+            }
         });
 
         // 3. Start Planet
@@ -1056,7 +1049,7 @@ mod tests {
         // 4. Setup Local Explorer Channels (Simulating Explorer 101)
         // We create a dedicated channel for this specific explorer interaction
         let explorer_id = 101;
-        let (expl_tx_local, expl_rx_local) = mpsc::channel::<PlanetToExplorer>();
+        let (expl_tx_local, expl_rx_local) = unbounded::<PlanetToExplorer>();
 
         // 5. Send IncomingExplorerRequest (Orchestrator -> Planet)
         orch_tx
