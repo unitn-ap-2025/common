@@ -1,7 +1,7 @@
 //! # Communication protocol messages
 //!
 //! Defines the types of messages exchanged between the different
-//! components using [mpsc] channels.
+//! components using [crossbeam_channel] channels.
 
 use crate::components::asteroid::Asteroid;
 use crate::components::planet::DummyPlanetState;
@@ -10,8 +10,9 @@ use crate::components::resource::{
     GenericResource,
 };
 use crate::components::sunray::Sunray;
+use crossbeam_channel::Sender;
 use std::collections::HashSet;
-use std::sync::mpsc;
+use crate::components::rocket::Rocket;
 
 /// Messages sent by the `Orchestrator` to a `Planet`.
 pub enum OrchestratorToPlanet {
@@ -23,14 +24,16 @@ pub enum OrchestratorToPlanet {
     StartPlanetAI,
     /// This variant is used to pause the planet Ai
     StopPlanetAI,
+    /// This variant is used to kill (or destroy) the planet
+    KillPlanet,
     /// This variant is used to obtain a Planet Internal State
     InternalStateRequest,
-    /// This variant is used to send the new [mpsc::Sender] of the incoming explorer, see the sequence diagram for more info
+    /// This variant is used to send the new [Sender] of the incoming explorer, see the sequence diagram for more info
     IncomingExplorerRequest {
         explorer_id: u32,
-        new_mpsc_sender: mpsc::Sender<PlanetToExplorer>,
+        new_mpsc_sender: Sender<PlanetToExplorer>,
     },
-    /// This variant is used to notify the planet to drop the [mpsc::Sender] of the outgoing explorer
+    /// This variant is used to notify the planet to drop the [Sender] of the outgoing explorer
     OutgoingExplorerRequest { explorer_id: u32 },
 }
 
@@ -40,11 +43,13 @@ pub enum PlanetToOrchestrator {
     SunrayAck { planet_id: u32 },
     /// This variant is used to acknowledge the obtained [Asteroid] and notify the orchestrator
     /// if the planet has been destroyed or not.
-    AsteroidAck { planet_id: u32, destroyed: bool },
+    AsteroidAck { planet_id: u32, rocket: Option<Rocket> },
     /// This variant is used to acknowledge the start of the Planet Ai
     StartPlanetAIResult { planet_id: u32 },
     /// This variant is used to acknowledge the stop of the Planet Ai
     StopPlanetAIResult { planet_id: u32 },
+    /// This variant is used to acknowledge the killing of a planet
+    KillPlanetResult { planet_id: u32 },
     /// This variant is used to send back the Planet State
     InternalStateResponse {
         planet_id: u32,
@@ -62,6 +67,27 @@ pub enum PlanetToOrchestrator {
         planet_id: u32,
         res: Result<(), String>,
     },
+    /// This variant is used by planets that are currently in a *stopped* state
+    /// to acknowledge any message coming from the Orchestrator (except for [OrchestratorToPlanet::StartPlanetAI])
+    Stopped { planet_id: u32 },
+}
+
+impl PlanetToOrchestrator {
+    /// Helper method to extract the `planet_id` field from any message variant
+    /// without needing to match a specific one.
+    pub fn planet_id(&self) -> u32 {
+        match self {
+            PlanetToOrchestrator::SunrayAck { planet_id, .. } => *planet_id,
+            PlanetToOrchestrator::AsteroidAck { planet_id, .. } => *planet_id,
+            PlanetToOrchestrator::StartPlanetAIResult { planet_id, .. } => *planet_id,
+            PlanetToOrchestrator::StopPlanetAIResult { planet_id, .. } => *planet_id,
+            PlanetToOrchestrator::KillPlanetResult { planet_id, .. } => *planet_id,
+            PlanetToOrchestrator::InternalStateResponse { planet_id, .. } => *planet_id,
+            PlanetToOrchestrator::IncomingExplorerResponse { planet_id, .. } => *planet_id,
+            PlanetToOrchestrator::OutgoingExplorerResponse { planet_id, .. } => *planet_id,
+            PlanetToOrchestrator::Stopped { planet_id, .. } => *planet_id,
+        }
+    }
 }
 
 /// Messages sent by the `Orchestrator` to an `Explorer`.
@@ -72,9 +98,9 @@ pub enum OrchestratorToExplorer {
     ResetExplorerAI,
     /// This variant is used to kill the Explorer AI
     KillExplorerAI,
-    /// This variant is used to send a [mpsc::Sender] to the new planet
+    /// This variant is used to send a [Sender] to the new planet
     MoveToPlanet {
-        sender_to_new_planet: Option<mpsc::Sender<ExplorerToPlanet>>,
+        sender_to_new_planet: Option<Sender<ExplorerToPlanet>>,
     }, //none if explorer asks to move to a non-adjacent planet,
     /// This variant is used to ask the ID of the Planet in which the Explorer is currently located
     CurrentPlanetRequest,
@@ -235,4 +261,7 @@ pub enum PlanetToExplorer {
     },
     /// This variant is used to send the number of available energy cells to the Explorer
     AvailableEnergyCellResponse { available_cells: u32 },
+    /// This variant is used by planets that are currently in a *stopped* state
+    /// to acknowledge any message coming from an explorer
+    Stopped,
 }
