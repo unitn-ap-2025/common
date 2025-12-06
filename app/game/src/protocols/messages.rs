@@ -62,6 +62,26 @@ pub enum PlanetToOrchestrator {
         planet_id: u32,
         res: Result<(), String>,
     },
+    /// This variant is used by planets that are currently in a *stopped* state
+    /// to acknowledge any message coming from the Orchestrator (except for [OrchestratorToPlanet::StartPlanetAI])
+    Stopped { planet_id: u32 },
+}
+
+impl PlanetToOrchestrator {
+    /// Helper method to extract the `planet_id` field from any message variant
+    /// without needing to match a specific one.
+    pub fn planet_id(&self) -> u32 {
+        match self {
+            PlanetToOrchestrator::SunrayAck { planet_id, .. } => *planet_id,
+            PlanetToOrchestrator::AsteroidAck { planet_id, .. } => *planet_id,
+            PlanetToOrchestrator::StartPlanetAIResult { planet_id, .. } => *planet_id,
+            PlanetToOrchestrator::StopPlanetAIResult { planet_id, .. } => *planet_id,
+            PlanetToOrchestrator::InternalStateResponse { planet_id, .. } => *planet_id,
+            PlanetToOrchestrator::IncomingExplorerResponse { planet_id, .. } => *planet_id,
+            PlanetToOrchestrator::OutgoingExplorerResponse { planet_id, .. } => *planet_id,
+            PlanetToOrchestrator::Stopped { planet_id, .. } => *planet_id,
+        }
+    }
 }
 
 /// Messages sent by the `Orchestrator` to an `Explorer`.
@@ -235,4 +255,7 @@ pub enum PlanetToExplorer {
     },
     /// This variant is used to send the number of available energy cells to the Explorer
     AvailableEnergyCellResponse { available_cells: u32 },
+    /// This variant is used by planets that are currently in a *stopped* state
+    /// to acknowledge any message coming from an explorer
+    Stopped,
 }

@@ -95,7 +95,7 @@ use crate::components::sunray::Sunray;
 use crate::protocols::messages::{
     ExplorerToPlanet, OrchestratorToPlanet, PlanetToExplorer, PlanetToOrchestrator,
 };
-use crossbeam_channel::{Receiver, Sender, select};
+use crossbeam_channel::{Receiver, Sender, select_biased};
 use std::collections::HashMap;
 use std::slice::{Iter, IterMut};
 
@@ -401,6 +401,8 @@ pub struct Planet {
 }
 
 impl Planet {
+    const ORCH_DISCONNECT_ERR: &str = "Orchestrator disconnected.";
+
     /// Constructor for the [Planet] type.
     ///
     /// # Errors
@@ -488,8 +490,6 @@ impl Planet {
     /// If the orchestrator or one of the explorers disconnects from the channels, this will return
     /// an [Err].
     pub fn run(&mut self) -> Result<(), String> {
-        const ORCH_DISCONNECT_ERR: &str = "Orchestrator disconnected.";
-
         // run the planet stopped by default
         // and wait for a StartPlanetAI message
         self.wait_for_start()?;
@@ -497,8 +497,8 @@ impl Planet {
         self.ai.start(&self.state);
 
         loop {
-            select! {
-                // wait for orchestrator message
+            select_biased! {
+                // wait for orchestrator message (prioritized operation)
                 recv(self.from_orchestrator) -> msg => match msg {
                     Ok(OrchestratorToPlanet::StartPlanetAI) => {}
                     Ok(OrchestratorToPlanet::StopPlanetAI) => {
@@ -506,7 +506,7 @@ impl Planet {
                             .send(PlanetToOrchestrator::StopPlanetAIResult {
                                 planet_id: self.id(),
                             })
-                            .map_err(|_| ORCH_DISCONNECT_ERR.to_string())?;
+                            .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
                         self.ai.stop(&self.state);
 
                         self.wait_for_start()?; // blocking wait
@@ -524,7 +524,7 @@ impl Planet {
                                 planet_id: self.id(),
                                 destroyed: rocket.is_none(),
                             })
-                            .map_err(|_| ORCH_DISCONNECT_ERR.to_string())?;
+                            .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
 
                         if rocket.is_none() {
                             return Ok(());
@@ -542,7 +542,7 @@ impl Planet {
                                 planet_id: self.id(),
                                 res: Ok(()),
                             })
-                            .map_err(|_| ORCH_DISCONNECT_ERR.to_string())?;
+                            .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
                     }
                     Ok(OrchestratorToPlanet::OutgoingExplorerRequest { explorer_id }) => {
                         self.to_explorers.remove(&explorer_id); // remove outgoing explorer channel
@@ -553,7 +553,7 @@ impl Planet {
                                 planet_id: self.id(),
                                 res: Ok(()),
                             })
-                            .map_err(|_| ORCH_DISCONNECT_ERR.to_string())?;
+                            .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
                     }
                     Ok(msg) => {
                         self.ai
@@ -565,11 +565,11 @@ impl Planet {
                             )
                             .map(|response| self.to_orchestrator.send(response))
                             .transpose()
-                            .map_err(|_| ORCH_DISCONNECT_ERR.to_string())?;
+                            .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
                     }
 
                     Err(_) => {
-                        return Err(ORCH_DISCONNECT_ERR.to_string())
+                        return Err(Self::ORCH_DISCONNECT_ERR.to_string())
                     }
                 },
 
@@ -598,18 +598,36 @@ impl Planet {
     // a StartPlanetAI message is received
     fn wait_for_start(&self) -> Result<(), String> {
         loop {
-            let recv_re = self.from_orchestrator.recv();
-            match recv_re {
-                Ok(OrchestratorToPlanet::StartPlanetAI) => {
-                    return self
-                        .to_orchestrator
-                        .send(PlanetToOrchestrator::StartPlanetAIResult {
-                            planet_id: self.id(),
-                        })
-                        .map_err(|_| "Orchestrator disconnected".to_string());
+            select_biased! {
+                // orch messages
+                recv(self.from_orchestrator) -> msg => match msg {
+                    // if `Start` is received, return
+                    Ok(OrchestratorToPlanet::StartPlanetAI) => {
+                        return self
+                            .to_orchestrator
+                            .send(PlanetToOrchestrator::StartPlanetAIResult {
+                                planet_id: self.id(),
+                            })
+                            .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string());
+                    }
+                    // every other message we respond with `Stopped`
+                    Ok(_) => {
+                        self.to_orchestrator
+                            .send(PlanetToOrchestrator::Stopped {
+                                planet_id: self.id(),
+                            })
+                            .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?
+                    }
+
+                    Err(_) => return Err(Self::ORCH_DISCONNECT_ERR.to_string()),
+                },
+
+                // explorers messages
+                recv(self.from_explorers) -> msg => if let Ok(msg) = msg &&
+                    let Some(to_explorer) = self.to_explorers.get(&msg.explorer_id())
+                {
+                    let _ = to_explorer.send(PlanetToExplorer::Stopped);
                 }
-                Err(_) => return Err("Orchestrator disconnected".to_string()),
-                _ => {}
             }
         }
     }
@@ -947,6 +965,14 @@ mod tests {
             _ => panic!("Planet sent incorrect response"),
         }
 
+        tx_to_planet_orch
+            .send(OrchestratorToPlanet::InternalStateRequest)
+            .unwrap();
+        match rx_to_orch.recv_timeout(Duration::from_millis(200)) {
+            Ok(PlanetToOrchestrator::Stopped { .. }) => {}
+            _ => panic!("Planet sent incorrect response"),
+        }
+
         drop(tx_to_planet_orch);
         let _ = handle.join();
     }
@@ -1080,6 +1106,33 @@ mod tests {
                 assert_eq!(available_cells, 5);
             }
             _ => panic!("Expected AvailableEnergyCellResponse"),
+        }
+
+        // Stop Planet AI
+        orch_tx
+            .send(OrchestratorToPlanet::StopPlanetAI)
+            .unwrap();
+        match orch_rx.recv_timeout(Duration::from_millis(200)) {
+            Ok(PlanetToOrchestrator::StopPlanetAIResult { .. }) => {}
+            _ => panic!("Planet sent incorrect response"),
+        }
+
+        // Try to send request from explorer to stopped planet
+        expl_tx_global
+            .send(ExplorerToPlanet::AvailableEnergyCellRequest { explorer_id })
+            .unwrap();
+        match expl_rx_local.recv_timeout(Duration::from_millis(200)) {
+            Ok(PlanetToExplorer::Stopped) => {}
+            _ => panic!("Planet sent incorrect response"),
+        }
+
+        // Restart planet AI
+        orch_tx
+            .send(OrchestratorToPlanet::StartPlanetAI)
+            .unwrap();
+        match orch_rx.recv_timeout(Duration::from_millis(200)) {
+            Ok(PlanetToOrchestrator::StartPlanetAIResult { .. }) => {}
+            _ => panic!("Planet sent incorrect response"),
         }
 
         // 8. Send OutgoingExplorerRequest (Orchestrator -> Planet)
