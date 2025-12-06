@@ -12,6 +12,7 @@ use crate::components::resource::{
 use crate::components::sunray::Sunray;
 use crossbeam_channel::Sender;
 use std::collections::HashSet;
+use crate::components::rocket::Rocket;
 
 /// Messages sent by the `Orchestrator` to a `Planet`.
 pub enum OrchestratorToPlanet {
@@ -23,6 +24,8 @@ pub enum OrchestratorToPlanet {
     StartPlanetAI,
     /// This variant is used to pause the planet Ai
     StopPlanetAI,
+    /// This variant is used to kill (or destroy) the planet
+    KillPlanet,
     /// This variant is used to obtain a Planet Internal State
     InternalStateRequest,
     /// This variant is used to send the new [Sender] of the incoming explorer, see the sequence diagram for more info
@@ -40,11 +43,13 @@ pub enum PlanetToOrchestrator {
     SunrayAck { planet_id: u32 },
     /// This variant is used to acknowledge the obtained [Asteroid] and notify the orchestrator
     /// if the planet has been destroyed or not.
-    AsteroidAck { planet_id: u32, destroyed: bool },
+    AsteroidAck { planet_id: u32, rocket: Option<Rocket> },
     /// This variant is used to acknowledge the start of the Planet Ai
     StartPlanetAIResult { planet_id: u32 },
     /// This variant is used to acknowledge the stop of the Planet Ai
     StopPlanetAIResult { planet_id: u32 },
+    /// This variant is used to acknowledge the killing of a planet
+    KillPlanetResult { planet_id: u32 },
     /// This variant is used to send back the Planet State
     InternalStateResponse {
         planet_id: u32,
@@ -76,6 +81,7 @@ impl PlanetToOrchestrator {
             PlanetToOrchestrator::AsteroidAck { planet_id, .. } => *planet_id,
             PlanetToOrchestrator::StartPlanetAIResult { planet_id, .. } => *planet_id,
             PlanetToOrchestrator::StopPlanetAIResult { planet_id, .. } => *planet_id,
+            PlanetToOrchestrator::KillPlanetResult { planet_id, .. } => *planet_id,
             PlanetToOrchestrator::InternalStateResponse { planet_id, .. } => *planet_id,
             PlanetToOrchestrator::IncomingExplorerResponse { planet_id, .. } => *planet_id,
             PlanetToOrchestrator::OutgoingExplorerResponse { planet_id, .. } => *planet_id,

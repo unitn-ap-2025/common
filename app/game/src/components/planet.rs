@@ -484,15 +484,15 @@ impl Planet {
     /// to the different messages.
     ///
     /// This method is *blocking* and should be called by the orchestrator in a separate thread.
-    /// It returns with an [Ok] when the planet has been **destroyed**.
+    /// It returns with an [Ok] when the planet has been **destroyed** (killed).
     ///
     /// # Errors
-    /// If the orchestrator or one of the explorers disconnects from the channels, this will return
-    /// an [Err].
+    /// If the orchestrator disconnects from the channel, this will return an [Err].
     pub fn run(&mut self) -> Result<(), String> {
         // run the planet stopped by default
         // and wait for a StartPlanetAI message
-        self.wait_for_start()?;
+        let kill = self.wait_for_start()?;
+        if kill { return Ok(()) }
 
         self.ai.start(&self.state);
 
@@ -501,6 +501,7 @@ impl Planet {
                 // wait for orchestrator message (prioritized operation)
                 recv(self.from_orchestrator) -> msg => match msg {
                     Ok(OrchestratorToPlanet::StartPlanetAI) => {}
+
                     Ok(OrchestratorToPlanet::StopPlanetAI) => {
                         self.to_orchestrator
                             .send(PlanetToOrchestrator::StopPlanetAIResult {
@@ -509,11 +510,21 @@ impl Planet {
                             .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
                         self.ai.stop(&self.state);
 
-                        self.wait_for_start()?; // blocking wait
+                        let kill = self.wait_for_start()?; // blocking wait
+                        if kill { return Ok(()) }
 
                         // restart AI
                         self.ai.start(&self.state)
                     }
+
+                    Ok(OrchestratorToPlanet::KillPlanet) => {
+                        self.to_orchestrator
+                            .send(PlanetToOrchestrator::KillPlanetResult { planet_id: self.id() })
+                            .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
+
+                        return Ok(())
+                    }
+
                     Ok(OrchestratorToPlanet::Asteroid(_)) => {
                         let rocket =
                             self.ai
@@ -522,14 +533,11 @@ impl Planet {
                         self.to_orchestrator
                             .send(PlanetToOrchestrator::AsteroidAck {
                                 planet_id: self.id(),
-                                destroyed: rocket.is_none(),
+                                rocket
                             })
                             .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
-
-                        if rocket.is_none() {
-                            return Ok(());
-                        }
                     }
+
                     Ok(OrchestratorToPlanet::IncomingExplorerRequest {
                         explorer_id,
                         new_mpsc_sender,
@@ -544,6 +552,7 @@ impl Planet {
                             })
                             .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
                     }
+
                     Ok(OrchestratorToPlanet::OutgoingExplorerRequest { explorer_id }) => {
                         self.to_explorers.remove(&explorer_id); // remove outgoing explorer channel
 
@@ -555,6 +564,8 @@ impl Planet {
                             })
                             .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
                     }
+
+                    // default case: relay to generic handler
                     Ok(msg) => {
                         self.ai
                             .handle_orchestrator_msg(
@@ -573,10 +584,12 @@ impl Planet {
                     }
                 },
 
-                // wait for explorer message
+                // wait for explorer message (ignore disconnections)
                 recv(self.from_explorers) -> msg => if let Ok(msg) = msg {
                     let explorer_id = msg.explorer_id();
 
+                    // if requesting explorer is currently
+                    // on the planet respond to it
                     if let Some(to_explorer) = self.to_explorers.get(&explorer_id)
                         && let Some(response) = self.ai.handle_explorer_msg(
                             &mut self.state,
@@ -596,19 +609,28 @@ impl Planet {
 
     // private helper function that blocks until
     // a StartPlanetAI message is received
-    fn wait_for_start(&self) -> Result<(), String> {
+    fn wait_for_start(&self) -> Result<bool, String> {
         loop {
             select_biased! {
                 // orch messages
                 recv(self.from_orchestrator) -> msg => match msg {
-                    // if `Start` is received, return
+                    // if `Start` is received, return false
                     Ok(OrchestratorToPlanet::StartPlanetAI) => {
-                        return self
-                            .to_orchestrator
+                        self.to_orchestrator
                             .send(PlanetToOrchestrator::StartPlanetAIResult {
                                 planet_id: self.id(),
                             })
-                            .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string());
+                            .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
+
+                        return Ok(false);
+                    }
+                    // if `Kill` is received, return true
+                    Ok(OrchestratorToPlanet::KillPlanet) => {
+                        self.to_orchestrator
+                            .send(PlanetToOrchestrator::KillPlanetResult { planet_id: self.id() })
+                            .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
+
+                        return Ok(true)
                     }
                     // every other message we respond with `Stopped`
                     Ok(_) => {
@@ -946,11 +968,11 @@ mod tests {
         match rx_to_orch.recv_timeout(Duration::from_millis(200)) {
             Ok(PlanetToOrchestrator::AsteroidAck {
                 planet_id,
-                destroyed,
+                rocket,
                 ..
             }) => {
                 assert_eq!(planet_id, 100);
-                assert!(!destroyed, "Planet failed to build rocket!");
+                assert!(rocket.is_some(), "Planet failed to build rocket!");
             }
             Ok(_) => panic!("Wrong message type"),
             Err(_) => panic!("Timeout waiting for AsteroidAck"),
@@ -965,6 +987,7 @@ mod tests {
             _ => panic!("Planet sent incorrect response"),
         }
 
+        // 6. Try to send a request while stopped
         tx_to_planet_orch
             .send(OrchestratorToPlanet::InternalStateRequest)
             .unwrap();
@@ -973,8 +996,17 @@ mod tests {
             _ => panic!("Planet sent incorrect response"),
         }
 
-        drop(tx_to_planet_orch);
-        let _ = handle.join();
+        // 7. Kill planet while stopped
+        tx_to_planet_orch
+            .send(OrchestratorToPlanet::KillPlanet)
+            .unwrap();
+        match rx_to_orch.recv_timeout(Duration::from_millis(200)) {
+            Ok(PlanetToOrchestrator::KillPlanetResult { .. }) => {}
+            _ => panic!("Planet sent incorrect response"),
+        }
+
+        // should return immediately
+        assert!(handle.join().is_ok(), "Planet thread exited with an error");
     }
 
     #[test]
