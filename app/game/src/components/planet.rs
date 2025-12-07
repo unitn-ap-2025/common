@@ -59,8 +59,8 @@
 //!         None
 //!     }
 //!
-//!     fn start(&mut self, state: &PlanetState) { /* startup code */ }
-//!     fn stop(&mut self, state: &PlanetState) { /* stop code */ }
+//!     fn start(&mut self, state: &mut PlanetState) { /* startup code */ }
+//!     fn stop(&mut self, state: &mut PlanetState) { /* stop code */ }
 //! }
 //!
 //! // This is the group's "export" function. It will be called by
@@ -107,16 +107,19 @@ use std::slice::{Iter, IterMut};
 ///
 /// The handlers can alter the planet state by accessing the
 /// `state` parameter, which is passed to the methods as a mutable borrow.
-/// A response can be sent by returning an optional message of the correct type,
-/// that will be forwarded to the associated channel passed on planet construction.
+/// A response can be sent (if allowed by message variant) by returning an optional message
+/// of the correct type, that will be forwarded to the associated channel passed on planet construction.
 pub trait PlanetAI: Send {
-    /// Handler for messages received by the orchestrator (receiving
-    /// end of the [OrchestratorToPlanet] channel).
+    /// Handler for messages received by the orchestrator, through the receiving
+    /// end of the [OrchestratorToPlanet] channel.
     /// The following messages will **not** invoke this handler:
     /// - [OrchestratorToPlanet::StartPlanetAI] (see [PlanetAI::start])
     /// - [OrchestratorToPlanet::StopPlanetAI] (see [PlanetAI::stop])
     /// - [OrchestratorToPlanet::Asteroid] (see [PlanetAI::handle_asteroid])
-    /// - [OrchestratorToPlanet::IncomingExplorerRequest], as this will be handled automatically by the planet
+    /// - [OrchestratorToPlanet::KillPlanet], as this message will just end the planet
+    ///
+    /// Also, the responses returned by this handler to the following messages will be *ignored*:
+    /// - [OrchestratorToPlanet::IncomingExplorerRequest], as a response to this will be automatically sent by the planet
     /// - [OrchestratorToPlanet::OutgoingExplorerRequest] (same as previous one)
     ///
     /// Check [PlanetAI] docs for general meaning of the parameters and return type.
@@ -158,13 +161,13 @@ pub trait PlanetAI: Send {
     /// is received, but **only if** the planet is currently in a *stopped* state.
     ///
     /// Start messages received when planet is already running are **ignored**.
-    fn start(&mut self, state: &PlanetState);
+    fn start(&mut self, state: &mut PlanetState);
 
     /// This method will be invoked when a [OrchestratorToPlanet::StopPlanetAI]
     /// is received, but **only if** the planet is currently in a *running* state.
     ///
     /// Stop messages received when planet is already stopped are **ignored**.
-    fn stop(&mut self, state: &PlanetState);
+    fn stop(&mut self, state: &mut PlanetState);
 }
 
 /// Contains planet rules constraints (see [PlanetType]).
@@ -492,9 +495,11 @@ impl Planet {
         // run the planet stopped by default
         // and wait for a StartPlanetAI message
         let kill = self.wait_for_start()?;
-        if kill { return Ok(()) }
+        if kill {
+            return Ok(());
+        }
 
-        self.ai.start(&self.state);
+        self.ai.start(&mut self.state);
 
         loop {
             select_biased! {
@@ -508,13 +513,13 @@ impl Planet {
                                 planet_id: self.id(),
                             })
                             .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
-                        self.ai.stop(&self.state);
+                        self.ai.stop(&mut self.state);
 
                         let kill = self.wait_for_start()?; // blocking wait
                         if kill { return Ok(()) }
 
                         // restart AI
-                        self.ai.start(&self.state)
+                        self.ai.start(&mut self.state)
                     }
 
                     Ok(OrchestratorToPlanet::KillPlanet) => {
@@ -542,7 +547,7 @@ impl Planet {
                         explorer_id,
                         new_mpsc_sender,
                     }) => {
-                        self.to_explorers.insert(explorer_id, new_mpsc_sender); // add new explorer channel
+                        self.to_explorers.insert(explorer_id, new_mpsc_sender.clone()); // add new explorer channel
 
                         // send ack back to orchestrator
                         self.to_orchestrator
@@ -551,6 +556,17 @@ impl Planet {
                                 res: Ok(()),
                             })
                             .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
+
+                        // relay message to AI handler (ignoring return value)
+                        self.ai.handle_orchestrator_msg(
+                            &mut self.state,
+                            &self.generator,
+                            &self.combinator,
+                            OrchestratorToPlanet::IncomingExplorerRequest {
+                                explorer_id,
+                                new_mpsc_sender,
+                            }
+                        );
                     }
 
                     Ok(OrchestratorToPlanet::OutgoingExplorerRequest { explorer_id }) => {
@@ -563,6 +579,16 @@ impl Planet {
                                 res: Ok(()),
                             })
                             .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
+
+                        // relay message to AI handler (ignoring return value)
+                        self.ai.handle_orchestrator_msg(
+                            &mut self.state,
+                            &self.generator,
+                            &self.combinator,
+                            OrchestratorToPlanet::OutgoingExplorerRequest {
+                                explorer_id,
+                            }
+                        );
                     }
 
                     // default case: relay to generic handler
@@ -683,7 +709,7 @@ impl Planet {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crossbeam_channel::{Receiver, Sender, unbounded};
+    use crossbeam_channel::{Receiver, Sender, bounded};
     use std::thread;
     use std::time::Duration;
 
@@ -695,6 +721,8 @@ mod tests {
     use crate::protocols::messages::{
         ExplorerToPlanet, OrchestratorToPlanet, PlanetToExplorer, PlanetToOrchestrator,
     };
+
+    const MESSAGE_CAP: usize = 100;
 
     // --- Mock AI ---
     struct MockAI {
@@ -768,11 +796,11 @@ mod tests {
             }
         }
 
-        fn start(&mut self, _state: &PlanetState) {
+        fn start(&mut self, _state: &mut PlanetState) {
             self.start_called = true;
         }
 
-        fn stop(&mut self, _state: &PlanetState) {
+        fn stop(&mut self, _state: &mut PlanetState) {
             self.stop_called = true;
         }
     }
@@ -794,14 +822,14 @@ mod tests {
         ExplPlanetHalfChannels,
     ) {
         // Channel 1: Orchestrator -> Planet
-        let (tx_orch_in, rx_orch_in) = unbounded::<OrchestratorToPlanet>();
+        let (tx_orch_in, rx_orch_in) = bounded::<OrchestratorToPlanet>(MESSAGE_CAP);
         // Channel 2: Planet -> Orchestrator
-        let (tx_orch_out, rx_orch_out) = unbounded::<PlanetToOrchestrator>();
+        let (tx_orch_out, rx_orch_out) = bounded::<PlanetToOrchestrator>(MESSAGE_CAP);
 
         // Channel 3: Explorer -> Planet
-        let (tx_expl_in, rx_expl_in) = unbounded::<ExplorerToPlanet>();
+        let (tx_expl_in, rx_expl_in) = bounded::<ExplorerToPlanet>(MESSAGE_CAP);
         // Channel 4: Planet -> Explorer
-        let (tx_expl_out, rx_expl_out) = unbounded::<PlanetToExplorer>();
+        let (tx_expl_out, rx_expl_out) = bounded::<PlanetToExplorer>(MESSAGE_CAP);
 
         (
             (rx_orch_in, tx_orch_out),
@@ -967,9 +995,7 @@ mod tests {
         // 4. Expect Survival (Ack with Some(Rocket))
         match rx_to_orch.recv_timeout(Duration::from_millis(200)) {
             Ok(PlanetToOrchestrator::AsteroidAck {
-                planet_id,
-                rocket,
-                ..
+                planet_id, rocket, ..
             }) => {
                 assert_eq!(planet_id, 100);
                 assert!(rocket.is_some(), "Planet failed to build rocket!");
@@ -1107,7 +1133,7 @@ mod tests {
         // 4. Setup Local Explorer Channels (Simulating Explorer 101)
         // We create a dedicated channel for this specific explorer interaction
         let explorer_id = 101;
-        let (expl_tx_local, expl_rx_local) = unbounded::<PlanetToExplorer>();
+        let (expl_tx_local, expl_rx_local) = bounded::<PlanetToExplorer>(MESSAGE_CAP);
 
         // 5. Send IncomingExplorerRequest (Orchestrator -> Planet)
         orch_tx
@@ -1141,9 +1167,7 @@ mod tests {
         }
 
         // Stop Planet AI
-        orch_tx
-            .send(OrchestratorToPlanet::StopPlanetAI)
-            .unwrap();
+        orch_tx.send(OrchestratorToPlanet::StopPlanetAI).unwrap();
         match orch_rx.recv_timeout(Duration::from_millis(200)) {
             Ok(PlanetToOrchestrator::StopPlanetAIResult { .. }) => {}
             _ => panic!("Planet sent incorrect response"),
@@ -1159,9 +1183,7 @@ mod tests {
         }
 
         // Restart planet AI
-        orch_tx
-            .send(OrchestratorToPlanet::StartPlanetAI)
-            .unwrap();
+        orch_tx.send(OrchestratorToPlanet::StartPlanetAI).unwrap();
         match orch_rx.recv_timeout(Duration::from_millis(200)) {
             Ok(PlanetToOrchestrator::StartPlanetAIResult { .. }) => {}
             _ => panic!("Planet sent incorrect response"),
