@@ -8,6 +8,7 @@ use crate::components::sunray::Sunray;
 
 /// Represents an energy storage cell that can be charged by receiving a [Sunray].
 #[allow(dead_code)]
+#[derive(Debug)]
 pub struct EnergyCell {
     /// Indicates whether the cell currently holds energy.
     charge: bool,
