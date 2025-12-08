@@ -74,5 +74,5 @@ jobs:
           git add .
           if [ -n "$(git status --porcelain)" ]; then
             git commit -m "Update docs from ${GITHUB_SHA}"
-            git push origin main
+            git push origin main -f
           fi
