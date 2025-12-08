@@ -9,10 +9,10 @@ use crate::components::resource::{
     BasicResource, BasicResourceType, ComplexResource, ComplexResourceRequest, ComplexResourceType,
     GenericResource,
 };
+use crate::components::rocket::Rocket;
 use crate::components::sunray::Sunray;
 use crossbeam_channel::Sender;
 use std::collections::HashSet;
-use crate::components::rocket::Rocket;
 
 /// Messages sent by the `Orchestrator` to a `Planet`.
 pub enum OrchestratorToPlanet {
@@ -43,7 +43,10 @@ pub enum PlanetToOrchestrator {
     SunrayAck { planet_id: u32 },
     /// This variant is used to acknowledge the obtained [Asteroid] and notify the orchestrator
     /// if the planet has been destroyed or not.
-    AsteroidAck { planet_id: u32, rocket: Option<Rocket> },
+    AsteroidAck {
+        planet_id: u32,
+        rocket: Option<Rocket>,
+    },
     /// This variant is used to acknowledge the start of the Planet Ai
     StartPlanetAIResult { planet_id: u32 },
     /// This variant is used to acknowledge the stop of the Planet Ai
