@@ -9,12 +9,13 @@ use crate::components::resource::{
     BasicResource, BasicResourceType, ComplexResource, ComplexResourceRequest, ComplexResourceType,
     GenericResource,
 };
-use crate::components::rocket::Rocket;
 use crate::components::sunray::Sunray;
 use crossbeam_channel::Sender;
 use std::collections::HashSet;
+use crate::components::rocket::Rocket;
 
 //TODO: DERIVE DEBUG ONCE OTHER COMPONENTS DO
+
 /// Messages sent by the `Orchestrator` to a `Planet`.
 pub enum OrchestratorToPlanet {
     /// This variant is used to send a [Sunray] to a planet
@@ -45,10 +46,7 @@ pub enum PlanetToOrchestrator {
     SunrayAck { planet_id: u32 },
     /// This variant is used to acknowledge the obtained [Asteroid] and notify the orchestrator
     /// if the planet has been destroyed or not.
-    AsteroidAck {
-        planet_id: u32,
-        rocket: Option<Rocket>,
-    },
+    AsteroidAck { planet_id: u32, rocket: Option<Rocket> },
     /// This variant is used to acknowledge the start of the Planet Ai
     StartPlanetAIResult { planet_id: u32 },
     /// This variant is used to acknowledge the stop of the Planet Ai
@@ -115,13 +113,15 @@ pub enum OrchestratorToExplorer {
     /// This variant is used to enforce the Explorer to ask the Planet to Generate a [BasicResource]
     GenerateResourceRequest { to_generate: BasicResourceType },
     /// This variant is used to enforce the Explorer to ask the Planet to Generate a [ComplexResource] provided by [ComplexResourceType]
-    CombineResourceRequest { to_generate: ComplexResourceType },
+    CombineResourceRequest{ to_generate: ComplexResourceType },
     /// This variant is used to ask the content of the Explorer Bag
     BagContentRequest,
     /// This variant is used to send to the Explorer its neighbors' IDs
     NeighborsResponse { neighbors: Vec<u32> },
 }
+
 /// Messages sent by an `Explorer` to the `Orchestrator`.
+
 pub enum ExplorerToOrchestrator<T> {
     /// Acknowledge of [OrchestratorToExplorer::StartExplorerAI]
     StartExplorerAIResult { explorer_id: u32 },
