@@ -492,9 +492,7 @@ impl Planet {
         // run the planet stopped by default
         // and wait for a StartPlanetAI message
         let kill = self.wait_for_start()?;
-        if kill {
-            return Ok(());
-        }
+        if kill { return Ok(()) }
 
         self.ai.start(&self.state);
 
@@ -969,7 +967,9 @@ mod tests {
         // 4. Expect Survival (Ack with Some(Rocket))
         match rx_to_orch.recv_timeout(Duration::from_millis(200)) {
             Ok(PlanetToOrchestrator::AsteroidAck {
-                planet_id, rocket, ..
+                planet_id,
+                rocket,
+                ..
             }) => {
                 assert_eq!(planet_id, 100);
                 assert!(rocket.is_some(), "Planet failed to build rocket!");
@@ -1141,7 +1141,9 @@ mod tests {
         }
 
         // Stop Planet AI
-        orch_tx.send(OrchestratorToPlanet::StopPlanetAI).unwrap();
+        orch_tx
+            .send(OrchestratorToPlanet::StopPlanetAI)
+            .unwrap();
         match orch_rx.recv_timeout(Duration::from_millis(200)) {
             Ok(PlanetToOrchestrator::StopPlanetAIResult { .. }) => {}
             _ => panic!("Planet sent incorrect response"),
@@ -1157,7 +1159,9 @@ mod tests {
         }
 
         // Restart planet AI
-        orch_tx.send(OrchestratorToPlanet::StartPlanetAI).unwrap();
+        orch_tx
+            .send(OrchestratorToPlanet::StartPlanetAI)
+            .unwrap();
         match orch_rx.recv_timeout(Duration::from_millis(200)) {
             Ok(PlanetToOrchestrator::StartPlanetAIResult { .. }) => {}
             _ => panic!("Planet sent incorrect response"),
