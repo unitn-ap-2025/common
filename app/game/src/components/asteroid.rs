@@ -1,5 +1,6 @@
 /// Represents an asteroid object, instanciable by the orchestrator.
 ///
+#[derive(Debug)]
 pub struct Asteroid {
     _private: (),
 }
