@@ -155,15 +155,33 @@ Formatting:
 **Goal:** Make the library easy to navigate and extend.
 
 ---
-## 10 - Release Checklist (v2.0+)
+## 10 - Changelog (must)
+
+- Maintain a `CHANGELOG.md` file in the repository root following [Keep a Changelog](https://keepachangelog.com/) format.
+- Document all notable changes for each version under these categories:
+  - **Added** - new features
+  - **Changed** - changes in existing functionality
+  - **Deprecated** - soon-to-be removed features
+  - **Removed** - removed features
+  - **Fixed** - bug fixes
+  - **Security** - vulnerability fixes
+- Update the changelog as part of each PR that affects the public API or fixes bugs.
+- Keep an "Unreleased" section at the top for changes not yet in a tagged release.
+- When cutting a release, move "Unreleased" changes to a new version section with the release date.
+
+**Goal:** Provide users with a clear history of changes between versions.
+
+---
+## 11 - Release Checklist (v2.0+)
 
 Before cutting a release:
 
 1. Ensure all CI jobs pass.  
 2. Verify that no accidental breaking changes were introduced.  
 3. Check for new public items without documentation.  
-4. Bump version in `Cargo.toml`.  
-5. Commit and tag the release in GitHub.
+4. Update `CHANGELOG.md` - move "Unreleased" section to the new version with today's date.
+5. Bump version in `Cargo.toml`.  
+6. Commit and tag the release in GitHub.
 
 **Goal:** Provide reliable and predictable releases to dependent projects.
 
