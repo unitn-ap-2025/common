@@ -5,6 +5,7 @@
 //! and checking whether the cell currently holds energy.
 
 use crate::components::sunray::Sunray;
+use std::fmt::{Debug, Formatter};
 
 /// Represents an energy storage cell that can be charged by receiving a [Sunray].
 #[allow(dead_code)]
@@ -17,6 +18,12 @@ impl Default for EnergyCell {
     /// Creates a new uncharged `EnergyCell`.
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Debug for EnergyCell {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Energy cell charge: {}", self.charge)
     }
 }
 
