@@ -14,8 +14,6 @@ use crossbeam_channel::Sender;
 use std::collections::HashSet;
 use crate::components::rocket::Rocket;
 
-//TODO: DERIVE DEBUG ONCE OTHER COMPONENTS DO
-
 /// Messages sent by the `Orchestrator` to a `Planet`.
 pub enum OrchestratorToPlanet {
     /// This variant is used to send a [Sunray] to a planet
@@ -40,7 +38,6 @@ pub enum OrchestratorToPlanet {
 }
 
 /// Messages sent by a `Planet` to the `Orchestrator`.
-
 pub enum PlanetToOrchestrator {
     /// This variant is used to acknowledge the obtained [Sunray]
     SunrayAck { planet_id: u32 },
@@ -74,6 +71,7 @@ pub enum PlanetToOrchestrator {
     /// to acknowledge any message coming from the Orchestrator (except for [OrchestratorToPlanet::StartPlanetAI])
     Stopped { planet_id: u32 },
 }
+
 impl PlanetToOrchestrator {
     /// Helper method to extract the `planet_id` field from any message variant
     /// without needing to match a specific one.
@@ -112,8 +110,8 @@ pub enum OrchestratorToExplorer {
     SupportedCombinationRequest,
     /// This variant is used to enforce the Explorer to ask the Planet to Generate a [BasicResource]
     GenerateResourceRequest { to_generate: BasicResourceType },
-    /// This variant is used to enforce the Explorer to ask the Planet to Generate a [ComplexResource] provided by [ComplexResourceType]
-    CombineResourceRequest{ to_generate: ComplexResourceType },
+    /// This variant is used to enforce the Explorer to ask the Planet to Generate a [ComplexResource] using the [ComplexResourceRequest]
+    CombineResourceRequest(ComplexResourceRequest),
     /// This variant is used to ask the content of the Explorer Bag
     BagContentRequest,
     /// This variant is used to send to the Explorer its neighbors' IDs
@@ -121,7 +119,6 @@ pub enum OrchestratorToExplorer {
 }
 
 /// Messages sent by an `Explorer` to the `Orchestrator`.
-
 pub enum ExplorerToOrchestrator<T> {
     /// Acknowledge of [OrchestratorToExplorer::StartExplorerAI]
     StartExplorerAIResult { explorer_id: u32 },
