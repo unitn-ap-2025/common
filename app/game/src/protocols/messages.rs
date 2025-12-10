@@ -15,6 +15,7 @@ use crossbeam_channel::Sender;
 use std::collections::HashSet;
 
 /// Messages sent by the `Orchestrator` to a `Planet`.
+#[derive(Debug)]
 pub enum OrchestratorToPlanet {
     /// This variant is used to send a [Sunray] to a planet
     Sunray(Sunray),
@@ -38,6 +39,7 @@ pub enum OrchestratorToPlanet {
 }
 
 /// Messages sent by a `Planet` to the `Orchestrator`.
+#[derive(Debug)]
 pub enum PlanetToOrchestrator {
     /// This variant is used to acknowledge the obtained [Sunray]
     SunrayAck { planet_id: u32 },
@@ -94,6 +96,7 @@ impl PlanetToOrchestrator {
 }
 
 /// Messages sent by the `Orchestrator` to an `Explorer`.
+#[derive(Debug)]
 pub enum OrchestratorToExplorer {
     /// This variant is used to start the Explorer AI
     StartExplorerAI,
@@ -122,6 +125,7 @@ pub enum OrchestratorToExplorer {
 }
 
 /// Messages sent by an `Explorer` to the `Orchestrator`.
+#[derive(Debug)]
 pub enum ExplorerToOrchestrator<T> {
     /// Acknowledge of [OrchestratorToExplorer::StartExplorerAI]
     StartExplorerAIResult { explorer_id: u32 },
@@ -211,6 +215,7 @@ impl<T> ExplorerToOrchestrator<T> {
 }
 
 /// Messages sent by an `Explorer` to a `Planet`.
+#[derive(Debug)]
 pub enum ExplorerToPlanet {
     /// This variant is used to ask the Planet for the available [BasicResourceType]
     SupportedResourceRequest { explorer_id: u32 },
@@ -245,6 +250,7 @@ impl ExplorerToPlanet {
 }
 
 /// Messages sent by a `Planet` to an `Explorer`.
+#[derive(Debug)]
 pub enum PlanetToExplorer {
     /// This variant is used to send the available [BasicResourceType] list to the Explorer
     SupportedResourceResponse {

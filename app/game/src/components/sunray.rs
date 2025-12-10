@@ -1,4 +1,5 @@
 /// Represents a sunray object, instanciable by the orchestrator.
+#[derive(Debug)]
 pub struct Sunray {
     _private: (),
 }
