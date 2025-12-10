@@ -1,26 +1,63 @@
+//! Forge module
+//!
+//! This module defines the [Forge] type, a singleton-like component responsible
+//! for generating [`Asteroid`] and [`Sunray`] instances.
+//!
+//! Only one Forge may exist at a time. Attempting to construct more than one
+//! instance results in an error. The component is designed to centralize object
+//! creation in a controlled manner.
+
 use crate::components::asteroid::Asteroid;
 use crate::components::sunray::Sunray;
 
 use lazy_static::lazy_static;
 use std::sync::Mutex;
 
-//Variable that indicate if the generator has already been created
+/// Internal module containing global state used by the [Forge].
+///
+/// # Internal API - Do not use directly
+///
+/// This module must be public only because Rust requires `pub` visibility for
+/// cross-module access within the crate.
+/// It **is not** considered stable API and must not be used by external code.
+pub(crate) mod internal {
+    use super::*;
 
-lazy_static! {
-    static ref ALREADY_CREATED: Mutex<bool> = Mutex::new(false);
+    lazy_static! {
+        /// Tracks whether a [Forge] instance has already been created.
+        ///
+        /// # Internal API - Do not use directly
+        pub(crate) static ref ALREADY_CREATED: Mutex<bool> = Mutex::new(false);
+    }
 }
 
-#[allow(dead_code)]
+/// The `Forge` is a singleton-like generator used to create [`Asteroid`] and
+/// [`Sunray`] instances.
+///
+/// Only one Forge may ever be created at a time. Attempting to create a second
+/// instance will return an error.
+///
+/// This ensures that all energy-related components are produced in a controlled,
+/// centralized manner.
 pub struct Forge {
-    //Private field to forbid the creation of a generator without using new()
+    /// Hidden field to prevent external construction.
     _private: (),
 }
 
-#[allow(dead_code)]
 impl Forge {
-    //New method uses the ALREADY_CREATED variable to check if the generator has already been created or not
+    /// Attempts to create a new `Forge`.
+    ///
+    /// # Errors
+    ///
+    /// - Returns `"Another generator has already been created"` if a Forge
+    ///   instance already exists.
+    /// - Returns `"Internal error: forge state mutex poisoned"` if the internal
+    ///   state cannot be accessed.
     pub fn new() -> Result<Self, String> {
-        let mut check = ALREADY_CREATED.lock().unwrap();
+        let mut check = internal::ALREADY_CREATED
+            .lock()
+            .map_err(|_| "Internal error: forge state mutex poisoned".to_string())?;
+
         if !*check {
             *check = true;
             Ok(Forge { _private: () })
@@ -29,12 +66,18 @@ impl Forge {
         }
     }
 
-    //Generator is the only entity that can create asteroids and sunrays
-
+    /// Creates a new [`Asteroid`].
+    ///
+    /// # Returns
+    /// A freshly constructed `Asteroid` instance.
     pub fn generate_asteroid(&self) -> Asteroid {
         Asteroid::new()
     }
 
+    /// Creates a new [`Sunray`].
+    ///
+    /// # Returns
+    /// A freshly constructed `Sunray` instance.
     pub fn generate_sunray(&self) -> Sunray {
         Sunray::new()
     }
@@ -42,32 +85,39 @@ impl Forge {
 
 #[cfg(test)]
 mod tests {
+    //! Unit tests for the [Forge].
+    //!
+    //! These tests validate singleton behavior and basic construction rules.
+
     use super::*;
+    use super::internal::ALREADY_CREATED;
 
-    #[test]
-    fn test_generator_first_creation_succeeds() {
-        // Flag reset
-        {
-            let mut created = ALREADY_CREATED.lock().unwrap();
-            *created = false;
-        }
-
-        let g = Forge::new();
-        assert!(g.is_ok(), "The first forge should be created correctly");
+    /// Resets the global singleton state.
+    ///
+    /// Used only in tests.
+    fn reset_flag() {
+        let mut created = ALREADY_CREATED
+            .lock()
+            .expect("Test setup failed: mutex poisoned");
+        *created = false;
     }
 
+    /// Verifies that the first Forge creation succeeds.
     #[test]
-    fn test_generator_second_creation_fails() {
-        // Flag reset
-        {
-            let mut created = ALREADY_CREATED.lock().unwrap();
-            *created = false;
-        }
+    fn first_creation_succeeds() {
+        reset_flag();
+        assert!(Forge::new().is_ok());
+    }
+
+    /// Ensures that constructing a second Forge returns an error.
+    #[test]
+    fn second_creation_fails() {
+        reset_flag();
 
         let g0 = Forge::new();
         assert!(g0.is_ok());
 
         let g1 = Forge::new();
-        assert!(g1.is_err(), "The second forge should return an error");
+        assert!(g1.is_err());
     }
 }
