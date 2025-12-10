@@ -39,6 +39,7 @@ pub enum OrchestratorToPlanet {
 }
 
 /// Messages sent by a `Planet` to the `Orchestrator`.
+
 pub enum PlanetToOrchestrator {
     /// This variant is used to acknowledge the obtained [Sunray]
     SunrayAck { planet_id: u32 },
