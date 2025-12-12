@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-beta.1] - 2025-12-12
+
 ### Added
 - Added `GUIDELINES.md` defining library maintenance standards for v2.0+
 - Added comprehensive documentation to `Forge` component with module-level and item-level doc comments
@@ -31,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial stable release.
 
-[Unreleased]: https://github.com/unitn-ap-2025/common/compare/v1.1.0...2.0-development
+[Unreleased]: https://github.com/unitn-ap-2025/common/compare/v2.0.0-beta.1...beta
+[2.0.0-beta.1]: https://github.com/unitn-ap-2025/common/compare/v1.1.0...v2.0.0-beta.1
 [1.1.0]: https://github.com/unitn-ap-2025/common/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/unitn-ap-2025/common/releases/tag/v1.0.0
