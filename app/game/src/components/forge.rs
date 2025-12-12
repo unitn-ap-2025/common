@@ -89,8 +89,8 @@ mod tests {
     //!
     //! These tests validate singleton behavior and basic construction rules.
 
-    use super::*;
     use super::internal::ALREADY_CREATED;
+    use super::*;
 
     /// Resets the global singleton state.
     ///
