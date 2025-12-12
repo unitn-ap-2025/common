@@ -14,7 +14,6 @@ use crate::components::sunray::Sunray;
 use crossbeam_channel::Sender;
 use std::collections::HashSet;
 
-//TODO: DERIVE DEBUG ONCE OTHER COMPONENTS DO
 /// Messages sent by the `Orchestrator` to a `Planet`.
 #[derive(Debug)]
 pub enum OrchestratorToPlanet {
@@ -102,8 +101,8 @@ pub enum OrchestratorToExplorer {
     StartExplorerAI,
     /// This variant is used to reset the Explorer AI
     ResetExplorerAI,
-    /// This variant is used to kill the Explorer AI
-    KillExplorerAI,
+    /// This variant is used to kill the Explorer
+    KillExplorer,
     /// This variant is used to send a [Sender] to the new planet
     MoveToPlanet {
         sender_to_new_planet: Option<Sender<ExplorerToPlanet>>,
@@ -128,8 +127,8 @@ pub enum OrchestratorToExplorer {
 pub enum ExplorerToOrchestrator<T> {
     /// Acknowledge of [OrchestratorToExplorer::StartExplorerAI]
     StartExplorerAIResult { explorer_id: u32 },
-    /// Acknowledge of [OrchestratorToExplorer::KillExplorerAI]
-    KillExplorerAIResult { explorer_id: u32 },
+    /// Acknowledge of [OrchestratorToExplorer::KillExplorer]
+    KillExplorerResult { explorer_id: u32 },
     /// Acknowledge of [OrchestratorToExplorer::ResetExplorerAI]
     ResetExplorerAIResult { explorer_id: u32 },
     /// Acknowledge of [OrchestratorToExplorer::MoveToPlanet]
@@ -198,7 +197,7 @@ impl<T> ExplorerToOrchestrator<T> {
     pub fn explorer_id(&self) -> u32 {
         match self {
             Self::StartExplorerAIResult { explorer_id, .. } => *explorer_id,
-            Self::KillExplorerAIResult { explorer_id, .. } => *explorer_id,
+            Self::KillExplorerResult { explorer_id, .. } => *explorer_id,
             Self::ResetExplorerAIResult { explorer_id, .. } => *explorer_id,
             Self::MovedToPlanetResult { explorer_id, .. } => *explorer_id,
             Self::CurrentPlanetResult { explorer_id, .. } => *explorer_id,
