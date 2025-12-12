@@ -25,7 +25,7 @@ pub enum OrchestratorToPlanet {
     StartPlanetAI,
     /// This variant is used to pause the planet Ai
     StopPlanetAI,
-    /// This variant is used to kill (or destroy) the planet
+    /// This variant is used to kill (destroy) the planet
     KillPlanet,
     /// This variant is used to obtain a Planet Internal State
     InternalStateRequest,

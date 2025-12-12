@@ -18,24 +18,34 @@
 //!
 //! ```
 //! use crossbeam_channel::{Sender, Receiver};
-//! use common_game::components::planet::{Planet, PlanetAI, PlanetState, PlanetType};
+//! use common_game::components::planet::{Planet, PlanetAI, PlanetState, PlanetType, DummyPlanetState};
 //! use common_game::components::resource::{Combinator, Generator};
 //! use common_game::components::rocket::Rocket;
+//! use common_game::components::sunray::Sunray;
 //! use common_game::protocols::messages;
 //!
 //! // Group-defined AI struct
 //! struct AI { /* your AI state here */ };
 //!
 //! impl PlanetAI for AI {
-//!     fn handle_orchestrator_msg(
+//!     fn handle_sunray(
 //!         &mut self,
 //!         state: &mut PlanetState,
 //!         generator: &Generator,
 //!         combinator: &Combinator,
-//!         msg: messages::OrchestratorToPlanet
-//!     ) -> Option<messages::PlanetToOrchestrator> {
+//!         sunray: Sunray
+//!     ) {
 //!         // your handler code here...
-//!         None
+//!     }
+//!
+//!     fn handle_internal_state_req(
+//!         &mut self,
+//!         state: &mut PlanetState,
+//!         generator: &Generator,
+//!         combinator: &Combinator
+//!     ) -> DummyPlanetState {
+//!         // your handler code here...
+//!         state.to_dummy()
 //!     }
 //!
 //!     fn handle_explorer_msg(
@@ -99,7 +109,7 @@ use crossbeam_channel::{Receiver, Sender, select_biased};
 use std::collections::HashMap;
 use std::slice::{Iter, IterMut};
 
-/// The trait that defines the behaviour of a planet.
+/// The trait that defines the behavior of a planet.
 ///
 /// Structs implementing this trait are intended to be passed to the
 /// [Planet] constructor, so that the handlers can be invoked by the planet
@@ -107,38 +117,17 @@ use std::slice::{Iter, IterMut};
 ///
 /// The handlers can alter the planet state by accessing the
 /// `state` parameter, which is passed to the methods as a mutable borrow.
-/// A response can be sent by returning an optional message of the correct type,
-/// that will be forwarded to the associated channel passed on planet construction.
 pub trait PlanetAI: Send {
-    /// Handler for messages received by the orchestrator (receiving
-    /// end of the [OrchestratorToPlanet] channel).
-    /// The following messages will **not** invoke this handler:
-    /// - [OrchestratorToPlanet::StartPlanetAI] (see [PlanetAI::start])
-    /// - [OrchestratorToPlanet::StopPlanetAI] (see [PlanetAI::stop])
-    /// - [OrchestratorToPlanet::Asteroid] (see [PlanetAI::handle_asteroid])
-    /// - [OrchestratorToPlanet::IncomingExplorerRequest], as this will be handled automatically by the planet
-    /// - [OrchestratorToPlanet::OutgoingExplorerRequest] (same as previous one)
-    ///
-    /// Check [PlanetAI] docs for general meaning of the parameters and return type.
-    fn handle_orchestrator_msg(
+    /// This handler will be invoked when a [OrchestratorToPlanet::Sunray]
+    /// message is received. The `sunray` parameter is the actual [Sunray] struct
+    /// used to charged energy cells.
+    fn handle_sunray(
         &mut self,
         state: &mut PlanetState,
         generator: &Generator,
         combinator: &Combinator,
-        msg: OrchestratorToPlanet,
-    ) -> Option<PlanetToOrchestrator>;
-
-    /// Handler for **all** messages received by an explorer (receiving
-    /// end of the [ExplorerToPlanet] channel).
-    ///
-    /// Check [PlanetAI] docs for general meaning of the parameters and return type.
-    fn handle_explorer_msg(
-        &mut self,
-        state: &mut PlanetState,
-        generator: &Generator,
-        combinator: &Combinator,
-        msg: ExplorerToPlanet,
-    ) -> Option<PlanetToExplorer>;
+        sunray: Sunray,
+    );
 
     /// This handler will be invoked when a [OrchestratorToPlanet::Asteroid]
     /// message is received. It's important to handle *Asteroid* messages
@@ -153,6 +142,57 @@ pub trait PlanetAI: Send {
         generator: &Generator,
         combinator: &Combinator,
     ) -> Option<Rocket>;
+
+    /// This handler will be invoked when a [OrchestratorToPlanet::InternalStateRequest]
+    /// message is received.
+    ///
+    /// # Returns
+    /// Should return a [DummyPlanetState] instance representing the current state
+    /// of the planet.
+    fn handle_internal_state_req(
+        &mut self,
+        state: &mut PlanetState,
+        generator: &Generator,
+        combinator: &Combinator,
+    ) -> DummyPlanetState;
+
+    /// Handler for **all** messages received by an explorer (receiving
+    /// end of the [ExplorerToPlanet] channel).
+    ///
+    /// # Returns
+    /// This method can return an optional response to the message, which will
+    /// be delivered to the explorer that sent the message.
+    fn handle_explorer_msg(
+        &mut self,
+        state: &mut PlanetState,
+        generator: &Generator,
+        combinator: &Combinator,
+        msg: ExplorerToPlanet,
+    ) -> Option<PlanetToExplorer>;
+
+    /// This method will be invoked when an explorer (identified by the `explorer_id`
+    /// parameter) lands on the planet.
+    #[allow(unused)]
+    fn on_explorer_arrival(
+        &mut self,
+        state: &mut PlanetState,
+        generator: &Generator,
+        combinator: &Combinator,
+        explorer_id: u32,
+    ) {
+    }
+
+    /// This method will be invoked when an explorer (identified by the `explorer_id`
+    /// parameter) leaves the planet.
+    #[allow(unused)]
+    fn on_explorer_departure(
+        &mut self,
+        state: &mut PlanetState,
+        generator: &Generator,
+        combinator: &Combinator,
+        explorer_id: u32,
+    ) {
+    }
 
     /// This method will be invoked when a [OrchestratorToPlanet::StartPlanetAI]
     /// is received, but **only if** the planet is currently in a *stopped* state.
@@ -527,6 +567,19 @@ impl Planet {
                         return Ok(())
                     }
 
+                    Ok(OrchestratorToPlanet::Sunray(sunray)) => {
+                        self.ai.handle_sunray(
+                            &mut self.state,
+                            &self.generator,
+                            &self.combinator,
+                            sunray
+                        );
+
+                        self.to_orchestrator
+                            .send(PlanetToOrchestrator::SunrayAck { planet_id: self.id() })
+                            .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
+                    }
+
                     Ok(OrchestratorToPlanet::Asteroid(_)) => {
                         let rocket =
                             self.ai
@@ -545,6 +598,7 @@ impl Planet {
                         new_mpsc_sender,
                     }) => {
                         self.to_explorers.insert(explorer_id, new_mpsc_sender); // add new explorer channel
+                        self.ai.on_explorer_arrival(&mut self.state, &self.generator, &self.combinator, explorer_id);
 
                         // send ack back to orchestrator
                         self.to_orchestrator
@@ -557,6 +611,7 @@ impl Planet {
 
                     Ok(OrchestratorToPlanet::OutgoingExplorerRequest { explorer_id }) => {
                         self.to_explorers.remove(&explorer_id); // remove outgoing explorer channel
+                        self.ai.on_explorer_departure(&mut self.state, &self.generator, &self.combinator, explorer_id);
 
                         // send ack back to orchestrator
                         self.to_orchestrator
@@ -568,17 +623,18 @@ impl Planet {
                     }
 
                     // default case: relay to generic handler
-                    Ok(msg) => {
-                        self.ai
-                            .handle_orchestrator_msg(
-                                &mut self.state,
-                                &self.generator,
-                                &self.combinator,
-                                msg,
-                            )
-                            .map(|response| self.to_orchestrator.send(response))
-                            .transpose()
-                            .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
+                    Ok(OrchestratorToPlanet::InternalStateRequest) => {
+                        let dummy_state = self.ai.handle_internal_state_req(
+                            &mut self.state,
+                            &self.generator,
+                            &self.combinator,
+                        );
+
+                        self.to_orchestrator.send(PlanetToOrchestrator::InternalStateResponse {
+                            planet_id: self.id(),
+                            planet_state: dummy_state,
+                        })
+                        .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
                     }
 
                     Err(_) => {
@@ -716,41 +772,17 @@ mod tests {
     }
 
     impl PlanetAI for MockAI {
-        fn handle_orchestrator_msg(
+        fn handle_sunray(
             &mut self,
             state: &mut PlanetState,
             _generator: &Generator,
             _combinator: &Combinator,
-            msg: OrchestratorToPlanet,
-        ) -> Option<PlanetToOrchestrator> {
-            match msg {
-                OrchestratorToPlanet::Sunray(s) => {
-                    self.sunray_count += 1;
+            sunray: Sunray,
+        ) {
+            self.sunray_count += 1;
 
-                    if let Some(cell) = state.cells_iter_mut().next() {
-                        cell.charge(s);
-                    }
-
-                    Some(PlanetToOrchestrator::SunrayAck {
-                        planet_id: state.id(),
-                    })
-                }
-                _ => None,
-            }
-        }
-
-        fn handle_explorer_msg(
-            &mut self,
-            _state: &mut PlanetState,
-            _generator: &Generator,
-            _combinator: &Combinator,
-            msg: ExplorerToPlanet,
-        ) -> Option<PlanetToExplorer> {
-            match msg {
-                ExplorerToPlanet::AvailableEnergyCellRequest { .. } => {
-                    Some(PlanetToExplorer::AvailableEnergyCellResponse { available_cells: 5 })
-                }
-                _ => None,
+            if let Some(cell) = state.cells_iter_mut().next() {
+                cell.charge(sunray);
             }
         }
 
@@ -767,6 +799,30 @@ mod tests {
                     let _ = state.build_rocket(i);
                     state.take_rocket()
                 }
+            }
+        }
+
+        fn handle_internal_state_req(
+            &mut self,
+            state: &mut PlanetState,
+            _generator: &Generator,
+            _combinator: &Combinator,
+        ) -> DummyPlanetState {
+            state.to_dummy()
+        }
+
+        fn handle_explorer_msg(
+            &mut self,
+            _state: &mut PlanetState,
+            _generator: &Generator,
+            _combinator: &Combinator,
+            msg: ExplorerToPlanet,
+        ) -> Option<PlanetToExplorer> {
+            match msg {
+                ExplorerToPlanet::AvailableEnergyCellRequest { .. } => {
+                    Some(PlanetToExplorer::AvailableEnergyCellResponse { available_cells: 5 })
+                }
+                _ => None,
             }
         }
 
