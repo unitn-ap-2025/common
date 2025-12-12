@@ -101,7 +101,7 @@ pub enum OrchestratorToExplorer {
     StartExplorerAI,
     /// This variant is used to reset the Explorer AI
     ResetExplorerAI,
-    /// This variant is used to kill the Explorer AI
+    /// This variant is used to kill the Explorer
     KillExplorer,
     /// This variant is used to send a [Sender] to the new planet
     MoveToPlanet {
