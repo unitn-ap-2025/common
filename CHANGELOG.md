@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-beta.2] - 2025-12-13
+
 ### Added
 - Added `handle_sunray()` method to `PlanetAI` trait for handling sunray messages
 - Added `handle_internal_state_req()` method to `PlanetAI` trait for handling internal state requests
@@ -45,7 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial stable release.
 
-[Unreleased]: https://github.com/unitn-ap-2025/common/compare/v2.0.0-beta.1...beta
+[Unreleased]: https://github.com/unitn-ap-2025/common/compare/v2.0.0-beta.2...beta
+[2.0.0-beta.2]: https://github.com/unitn-ap-2025/common/compare/v2.0.0-beta.1...v2.0.0-beta.2
 [2.0.0-beta.1]: https://github.com/unitn-ap-2025/common/compare/v1.1.0...v2.0.0-beta.1
 [1.1.0]: https://github.com/unitn-ap-2025/common/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/unitn-ap-2025/common/releases/tag/v1.0.0
