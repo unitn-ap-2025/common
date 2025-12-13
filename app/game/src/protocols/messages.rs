@@ -76,7 +76,6 @@ pub enum PlanetToOrchestrator {
     /// to acknowledge any message coming from the Orchestrator (except for [OrchestratorToPlanet::StartPlanetAI])
     Stopped { planet_id: u32 },
 }
-
 impl PlanetToOrchestrator {
     /// Helper method to extract the `planet_id` field from any message variant
     /// without needing to match a specific one.
@@ -102,8 +101,8 @@ pub enum OrchestratorToExplorer {
     StartExplorerAI,
     /// This variant is used to reset the Explorer AI
     ResetExplorerAI,
-    /// This variant is used to kill the Explorer AI
-    KillExplorerAI,
+    /// This variant is used to kill the Explorer
+    KillExplorer,
     /// This variant is used to send a [Sender] to the new planet
     MoveToPlanet {
         sender_to_new_planet: Option<Sender<ExplorerToPlanet>>,
@@ -116,21 +115,20 @@ pub enum OrchestratorToExplorer {
     SupportedCombinationRequest,
     /// This variant is used to enforce the Explorer to ask the Planet to Generate a [BasicResource]
     GenerateResourceRequest { to_generate: BasicResourceType },
-    /// This variant is used to enforce the Explorer to ask the Planet to Generate a [ComplexResource] using the [ComplexResourceRequest]
-    CombineResourceRequest(ComplexResourceRequest),
+    /// This variant is used to enforce the Explorer to ask the Planet to Generate a [ComplexResource] provided by [ComplexResourceType]
+    CombineResourceRequest { to_generate: ComplexResourceType },
     /// This variant is used to ask the content of the Explorer Bag
     BagContentRequest,
     /// This variant is used to send to the Explorer its neighbors' IDs
     NeighborsResponse { neighbors: Vec<u32> },
 }
-
 /// Messages sent by an `Explorer` to the `Orchestrator`.
 #[derive(Debug)]
 pub enum ExplorerToOrchestrator<T> {
     /// Acknowledge of [OrchestratorToExplorer::StartExplorerAI]
     StartExplorerAIResult { explorer_id: u32 },
-    /// Acknowledge of [OrchestratorToExplorer::KillExplorerAI]
-    KillExplorerAIResult { explorer_id: u32 },
+    /// Acknowledge of [OrchestratorToExplorer::KillExplorer]
+    KillExplorerResult { explorer_id: u32 },
     /// Acknowledge of [OrchestratorToExplorer::ResetExplorerAI]
     ResetExplorerAIResult { explorer_id: u32 },
     /// Acknowledge of [OrchestratorToExplorer::MoveToPlanet]
@@ -199,7 +197,7 @@ impl<T> ExplorerToOrchestrator<T> {
     pub fn explorer_id(&self) -> u32 {
         match self {
             Self::StartExplorerAIResult { explorer_id, .. } => *explorer_id,
-            Self::KillExplorerAIResult { explorer_id, .. } => *explorer_id,
+            Self::KillExplorerResult { explorer_id, .. } => *explorer_id,
             Self::ResetExplorerAIResult { explorer_id, .. } => *explorer_id,
             Self::MovedToPlanetResult { explorer_id, .. } => *explorer_id,
             Self::CurrentPlanetResult { explorer_id, .. } => *explorer_id,
