@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added `handle_sunray()` method to `PlanetAI` trait for handling sunray messages
+- Added `handle_internal_state_req()` method to `PlanetAI` trait for handling internal state requests
+- Added `on_explorer_arrival()` optional listener method with empty default implementation
+- Added `on_explorer_departure()` optional listener method with empty default implementation
+
+### Changed
+- **Breaking**: Removed generic `handle_orchestrator_msg()` handler from `PlanetAI` trait in favor of specialized handlers
+- **Breaking**: Renamed `start()` to `on_start()` in `PlanetAI` trait with `generator` and `combinator` parameters, now has empty default implementation
+- **Breaking**: Renamed `stop()` to `on_stop()` in `PlanetAI` trait with `generator` and `combinator` parameters, now has empty default implementation
+- `Sunray` and `InternalStateRequest` messages are now handled by dedicated methods instead of generic handler
+
 ## [2.0.0-beta.1] - 2025-12-12
 
 ### Added
