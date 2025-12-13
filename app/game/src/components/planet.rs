@@ -10,7 +10,7 @@
 //!
 //! One of the construction parameters is a group-defined struct that implements the [PlanetAI] trait,
 //! which defines several methods for handling messages coming from the orchestrator and the explorers. This is
-//! the core of each group's planet implementation, as it defines the planet *behaviour*, that is
+//! the core of each group's planet implementation, as it defines the planet *behavior*, that is
 //! how a planet "reacts" to the possible events or requests.
 //!
 //! ## Examples
@@ -68,9 +68,6 @@
 //!         // your handler code here...
 //!         None
 //!     }
-//!
-//!     fn start(&mut self, state: &PlanetState) { /* startup code */ }
-//!     fn stop(&mut self, state: &PlanetState) { /* stop code */ }
 //! }
 //!
 //! // This is the group's "export" function. It will be called by
@@ -198,13 +195,15 @@ pub trait PlanetAI: Send {
     /// is received, but **only if** the planet is currently in a *stopped* state.
     ///
     /// Start messages received when planet is already running are **ignored**.
-    fn start(&mut self, state: &PlanetState);
+    #[allow(unused)]
+    fn on_start(&mut self, state: &PlanetState, generator: &Generator, combinator: &Combinator) {}
 
     /// This method will be invoked when a [OrchestratorToPlanet::StopPlanetAI]
     /// is received, but **only if** the planet is currently in a *running* state.
     ///
     /// Stop messages received when planet is already stopped are **ignored**.
-    fn stop(&mut self, state: &PlanetState);
+    #[allow(unused)]
+    fn on_stop(&mut self, state: &PlanetState, generator: &Generator, combinator: &Combinator) {}
 }
 
 /// Contains planet rules constraints (see [PlanetType]).
@@ -536,7 +535,8 @@ impl Planet {
             return Ok(());
         }
 
-        self.ai.start(&self.state);
+        self.ai
+            .on_start(&self.state, &self.generator, &self.combinator);
 
         loop {
             select_biased! {
@@ -550,13 +550,14 @@ impl Planet {
                                 planet_id: self.id(),
                             })
                             .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
-                        self.ai.stop(&self.state);
+
+                        self.ai.on_stop(&self.state, &self.generator, &self.combinator);
 
                         let kill = self.wait_for_start()?; // blocking wait
                         if kill { return Ok(()) }
 
                         // restart AI
-                        self.ai.start(&self.state)
+                        self.ai.on_start(&self.state, &self.generator, &self.combinator);
                     }
 
                     Ok(OrchestratorToPlanet::KillPlanet) => {
@@ -826,11 +827,21 @@ mod tests {
             }
         }
 
-        fn start(&mut self, _state: &PlanetState) {
+        fn on_start(
+            &mut self,
+            _state: &PlanetState,
+            _generator: &Generator,
+            _combinator: &Combinator,
+        ) {
             self.start_called = true;
         }
 
-        fn stop(&mut self, _state: &PlanetState) {
+        fn on_stop(
+            &mut self,
+            _state: &PlanetState,
+            _generator: &Generator,
+            _combinator: &Combinator,
+        ) {
             self.stop_called = true;
         }
     }
