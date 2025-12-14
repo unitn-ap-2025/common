@@ -440,7 +440,7 @@ pub struct Planet {
 }
 
 impl Planet {
-    const ORCH_DISCONNECT_ERR: &str = "Orchestrator disconnected.";
+    const ORCH_DISCONNECT_ERR: &'static str = "Orchestrator disconnected.";
 
     /// Constructor for the [Planet] type.
     ///
@@ -605,6 +605,7 @@ impl Planet {
                         self.to_orchestrator
                             .send(PlanetToOrchestrator::IncomingExplorerResponse {
                                 planet_id: self.id(),
+                                explorer_id,
                                 res: Ok(()),
                             })
                             .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
@@ -618,6 +619,7 @@ impl Planet {
                         self.to_orchestrator
                             .send(PlanetToOrchestrator::OutgoingExplorerResponse {
                                 planet_id: self.id(),
+                                explorer_id,
                                 res: Ok(()),
                             })
                             .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
@@ -1186,7 +1188,7 @@ mod tests {
 
         // 6. Verify Ack from Planet
         match orch_rx.recv_timeout(Duration::from_millis(200)) {
-            Ok(PlanetToOrchestrator::IncomingExplorerResponse { planet_id, res }) => {
+            Ok(PlanetToOrchestrator::IncomingExplorerResponse { planet_id, res, .. }) => {
                 assert_eq!(planet_id, 1);
                 assert!(res.is_ok());
             }
@@ -1237,7 +1239,7 @@ mod tests {
 
         // 9. Verify Ack from Planet
         match orch_rx.recv_timeout(Duration::from_millis(200)) {
-            Ok(PlanetToOrchestrator::OutgoingExplorerResponse { planet_id, res }) => {
+            Ok(PlanetToOrchestrator::OutgoingExplorerResponse { planet_id, res, .. }) => {
                 assert_eq!(planet_id, 1);
                 assert!(res.is_ok());
             }

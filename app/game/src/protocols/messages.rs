@@ -64,12 +64,14 @@ pub enum PlanetToOrchestrator {
     /// Encapsulates a [Result] with a possible [Err] String representing an error occurred
     IncomingExplorerResponse {
         planet_id: u32,
+        explorer_id: u32,
         res: Result<(), String>,
     },
     /// This variant is used to acknowledge the outgoing explorer
     /// Encapsulates a [Result] with a possible [Err] String representing an error occurred
     OutgoingExplorerResponse {
         planet_id: u32,
+        explorer_id: u32,
         res: Result<(), String>,
     },
     /// This variant is used by planets that are currently in a *stopped* state
