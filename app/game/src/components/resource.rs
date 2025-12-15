@@ -1,37 +1,50 @@
 //! # Resource Module
-//! Defines all basic and complex resources.
 //!
-//! Every resource has a struct and implements the resource trait.
+//! This module defines the resources that can be generated and combined in the game.
+//! It provides a framework for creating basic and complex resources, and for defining
+//! the recipes that govern their creation.
 //!
-//! The primary public items for other modules are the [`Resource`] trait,
-//! the enums that aggregate the generated types, such as [`BasicResource`], [`ComplexResource`] and [`GenericResource`] for passing the actual [`Resource`] around and
-//! [`BasicResourceType`],[`ComplexResourceType`] and [`ResourceType`] for passing the names and acts like phantoms of a resource.
-//! There exist two structs [`Generator`] and [`Combinator`] which are given to the planet to generate and combine resources,
-//! these structs contain the signatures of the available recipes, these recipes are only updated in the constructor of the planet
-//! To generate of combinator resources use the available methods in either structs, these return a [Result]
-//! There exist an enum to pass around the request to the planet to generate a complex resource  [`ComplexResourceRequest`]
+//! ## Resources
+//!
+//! Resources are defined by the [`Resource`] trait, which provides a common interface for all
+//! resources. There are two types of resources:
+//!
+//! - **Basic Resources**: These are the simplest resources, and can be generated directly
+//!   from an [`EnergyCell`]. Examples include `Oxygen` and `Hydrogen`.
+//! - **Complex Resources**: These are created by combining other resources. Examples
+//!   include `Water` and `Diamond`.
+//!
+//! The module uses macros to define the resources and their properties.
+//!
+//! ## Generator and Combinator
+//!
+//! The [`Generator`] and [`Combinator`] structs are used to manage the recipes for
+//! creating resources. The `Generator` is responsible for creating basic resources,
+//! while the `Combinator` is responsible for creating complex resources.
+//!
+//! Each planet has its own `Generator` and `Combinator`, which are initialized with
+//! the recipes that are available to that planet.
 use crate::components::energy_cell::EnergyCell;
 use std::collections::HashSet;
 use std::fmt::Display;
 use std::hash::Hash;
 
-/// Gives the necessary methods to print out the resource
+/// A trait that provides a common interface for all resources.
 pub trait Resource: Display {
+    /// Returns a static string representation of the resource.
     fn to_static_str(&self) -> &'static str;
 }
 
-///
-/// Identifies a resource which could be both [`BasicResourceType`] and [`ComplexResourceType`]
-/// without actually containing the underlying resource,
-///
+/// An enum that identifies a resource, which can be either a [`BasicResourceType`] or a
+/// [`ComplexResourceType`], without actually containing the underlying resource.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ResourceType {
     Basic(BasicResourceType),
     Complex(ComplexResourceType),
 }
-///
-/// Contains a resource which could be both [`BasicResource`] and [`ComplexResource`]
-///
+
+/// An enum that contains a resource, which can be either a [`BasicResource`] or a
+/// [`ComplexResource`].
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum GenericResource {
     BasicResources(BasicResource),
@@ -39,7 +52,7 @@ pub enum GenericResource {
 }
 
 impl GenericResource {
-    /// Gets the ResourceType for this GenericResource
+    /// Returns the [`ResourceType`] of the `GenericResource`.
     pub fn get_type(&self) -> ResourceType {
         match self {
             GenericResource::BasicResources(basic) => ResourceType::Basic(basic.get_type()),
@@ -60,7 +73,8 @@ impl Hash for BasicResourceType {
     }
 }
 
-///contains all the recipes available to a planet and enables the creation of complex resources
+/// Contains all the recipes available to a planet and enables the creation of complex
+/// resources.
 #[derive(Debug)]
 pub struct Combinator {
     set: HashSet<ComplexResourceType>,
@@ -72,19 +86,24 @@ impl Default for Combinator {
 }
 
 impl Combinator {
+    /// Creates a new `Combinator` with no recipes.
     pub fn new() -> Combinator {
         Combinator {
             set: Default::default(),
         }
     }
-    ///to find out if a specific recipe is contained
+
+    /// Returns `true` if the `Combinator` contains a recipe for the specified
+    /// [`ComplexResourceType`].
     pub fn contains(&self, complex: ComplexResourceType) -> bool {
         matches!(&self.set.get(&complex), Some(_f))
     }
-    ///to add a specific recipe
-    ///this returns ar [Err] if there already was a recipe for a [Resource], since there can't be two different recipes for a single [Resource]
+
+    /// # Internal API - Do not use directly
     ///
-    #[allow(unused)]
+    /// Adds a recipe for the specified [`ComplexResourceType`] to the `Combinator`.
+    /// This method is intended for internal use only, to initialize a planet's `Combinator`.
+    #[doc(hidden)]
     pub(crate) fn add(&mut self, complex: ComplexResourceType) -> Result<(), String> {
         if self.set.insert(complex) {
             Ok(())
@@ -95,13 +114,15 @@ impl Combinator {
             ))
         }
     }
-    ///to retrieve all available recipes
+
+    /// Returns a `HashSet` of all the recipes available in the `Combinator`.
     pub fn all_available_recipes(&self) -> HashSet<ComplexResourceType> {
         self.set.iter().cloned().collect()
     }
 }
 
-///contains all the recipes available to a planet and enables the creation of basic resources
+/// Contains all the recipes available to a planet and enables the creation of basic
+/// resources.
 #[derive(Debug)]
 pub struct Generator {
     set: HashSet<BasicResourceType>,
@@ -114,19 +135,24 @@ impl Default for Generator {
 }
 
 impl Generator {
+    /// Creates a new `Generator` with no recipes.
     pub fn new() -> Generator {
         Generator {
             set: Default::default(),
         }
     }
-    ///to find out if a specific recipe is contained
+
+    /// Returns `true` if the `Generator` contains a recipe for the specified
+    /// [`BasicResourceType`].
     pub fn contains(&self, basic: BasicResourceType) -> bool {
         matches!(&self.set.get(&basic), Some(_f))
     }
-    ///to add a specific recipe
-    ///this returns ar [Err] if there already was a recipe for a [Resource], since there can't be two different recipes for a single [Resource]
+
+    /// # Internal API - Do not use directly
     ///
-    #[allow(unused)]
+    /// Adds a recipe for the specified [`BasicResourceType`] to the `Generator`.
+    /// This method is intended for internal use only, to initialize a planet's `Generator`.
+    #[doc(hidden)]
     pub(crate) fn add(&mut self, basic: BasicResourceType) -> Result<(), String> {
         if self.set.insert(basic) {
             Ok(())
@@ -137,11 +163,13 @@ impl Generator {
             ))
         }
     }
-    ///to retrieve all available recipes
+
+    /// Returns a `HashSet` of all the recipes available in the `Generator`.
     pub fn all_available_recipes(&self) -> HashSet<BasicResourceType> {
         self.set.iter().cloned().collect()
     }
 }
+
 macro_rules! define_resources {
         (Basic: [$($basic:ident),* $(,)?], Complex: [$($complex:ident),* $(,)?]) => {
 
@@ -303,10 +331,8 @@ macro_rules! define_resources {
 
             }
 
-             ///
-             /// Identifies a [`ComplexResource`]
-             /// without actually containing the underlying resource,
-             ///
+            /// An enum that identifies a [`ComplexResource`] without actually containing the
+            /// underlying resource.
             #[derive(Debug,Clone,Copy, Eq)]
             pub enum ComplexResourceType {
                 $($complex,)*
@@ -386,26 +412,20 @@ macro_rules! define_resources {
                 }
             }
 
-             ///
-             /// Gives the choice between every possible basic resource
-             ///
-             #[derive(Debug, PartialEq,Eq,Hash)]
+            /// An enum that gives the choice between every possible basic resource.
+            #[derive(Debug, PartialEq,Eq,Hash)]
             pub enum BasicResource {
                 $($basic($basic),)*
             }
 
-             ///
-             /// Gives the choice between every possible complex resource
-             ///
-             #[derive(Debug ,PartialEq,Eq,Hash)]
+            /// An enum that gives the choice between every possible complex resource.
+            #[derive(Debug ,PartialEq,Eq,Hash)]
             pub enum ComplexResource {
                 $($complex($complex),)*
             }
 
-              ///
-              /// Identifies a [`BasicResource`]
-              /// without actually containing the underlying resource,
-              ///
+            /// An enum that identifies a [`BasicResource`] without actually containing the
+            /// underlying resource.
             #[derive(Debug,Clone,Copy,Eq)]
             pub enum BasicResourceType {
                 $($basic,)*
@@ -463,10 +483,9 @@ macro_rules! define_combination_rules {
             )*
 
             paste::paste! {
-                 ///
-                 /// Gives a structured way to pass around the request to produce a complex resource
-                 ///
-                 #[derive(Debug, PartialEq,Eq,Hash )]
+                /// An enum that gives a structured way to pass around the request to produce a
+                /// complex resource.
+                #[derive(Debug, PartialEq,Eq,Hash )]
                 pub enum ComplexResourceRequest{
                      $([<$result >]( $lhs, $rhs ), )*
                 }
@@ -723,5 +742,87 @@ mod tests {
 
         assert!(ai.is_ok());
         assert_eq!(ai.unwrap().to_static_str(), "AIPartner");
+    }
+
+    #[test]
+    fn test_generator_try_make() {
+        let mut generator = Generator::new();
+        let mut cell = get_charged_cell();
+        generator.add(BasicResourceType::Oxygen).unwrap();
+
+        // Test success
+        let result = generator.try_make(BasicResourceType::Oxygen, &mut cell);
+        assert!(result.is_ok());
+        let resource = result.unwrap();
+        assert_eq!(resource.get_type(), BasicResourceType::Oxygen);
+        assert!(!cell.is_charged());
+
+        // Test fail no charge
+        let result = generator.try_make(BasicResourceType::Oxygen, &mut cell);
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap(), "The energy is not charged");
+
+        // Test fail no recipe
+        let mut cell = get_charged_cell();
+        let result = generator.try_make(BasicResourceType::Hydrogen, &mut cell);
+        assert!(result.is_err());
+        assert!(result.err().unwrap().contains("Missing recipe for"));
+    }
+
+    #[test]
+    fn test_combinator_try_make() {
+        let mut generator = Generator::new();
+        let mut combinator = Combinator::new();
+        combinator.add(ComplexResourceType::Water).unwrap();
+        generator.add(BasicResourceType::Hydrogen).unwrap();
+        generator.add(BasicResourceType::Oxygen).unwrap();
+
+        let mut cell = get_charged_cell();
+        let hydrogen = generator.make_hydrogen(&mut cell).unwrap();
+        cell.charge(Sunray::new());
+        let oxygen = generator.make_oxygen(&mut cell).unwrap();
+
+        // Test success
+        cell.charge(Sunray::new());
+        let request = ComplexResourceRequest::Water(hydrogen, oxygen);
+        let result = combinator.try_make(request, &mut cell);
+        assert!(result.is_ok());
+        let resource = result.unwrap();
+        assert_eq!(resource.get_type(), ComplexResourceType::Water);
+        assert!(!cell.is_charged());
+
+        let hydrogen = generator.make_hydrogen(&mut get_charged_cell()).unwrap();
+        let oxygen = generator.make_oxygen(&mut get_charged_cell()).unwrap();
+
+        // Test fail no charge
+        let request = ComplexResourceRequest::Water(hydrogen, oxygen);
+        let result = combinator.try_make(request, &mut cell);
+        assert!(result.is_err());
+        let (err, _, _) = result.err().unwrap();
+        assert_eq!(err, "EnergyCell not charged!");
+
+        // Test fail no recipe
+        let mut cell = get_charged_cell();
+        let mut combinator = Combinator::new(); // No recipes
+        let hydrogen = generator.make_hydrogen(&mut get_charged_cell()).unwrap();
+        let oxygen = generator.make_oxygen(&mut get_charged_cell()).unwrap();
+        let request = ComplexResourceRequest::Water(hydrogen, oxygen);
+        let result = combinator.try_make(request, &mut cell);
+        assert!(result.is_err());
+        let (err, _, _) = result.err().unwrap();
+        assert!(err.contains("there isn't a recipe for"));
+    }
+
+    #[test]
+    fn test_generic_resource_conversions() {
+        let oxygen = Oxygen { _private: () };
+        let generic_basic = oxygen.to_generic();
+        assert_eq!(generic_basic.get_type(), ResourceType::Basic(BasicResourceType::Oxygen));
+        assert!(generic_basic.to_oxygen().is_ok());
+
+        let water = Water { _private: () };
+        let generic_complex = water.to_generic();
+        assert_eq!(generic_complex.get_type(), ResourceType::Complex(ComplexResourceType::Water));
+        assert!(generic_complex.to_water().is_ok());
     }
 }
