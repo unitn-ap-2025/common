@@ -9,12 +9,11 @@
 //! Resources are defined by the [`Resource`] trait, which provides a common interface for all
 //! resources. There are two types of resources:
 //!
-//! - **Basic Resources**: These are the simplest resources, and can be generated directly
-//!   from an [`EnergyCell`]. Examples include `Oxygen` and `Hydrogen`.
-//! - **Complex Resources**: These are created by combining other resources. Examples
-//!   include `Water` and `Diamond`.
+//! - **Basic Resources**: These are the simplest resources, and can be generated with
+//!   just an [`EnergyCell`]. Examples include `Oxygen` and `Hydrogen`.
+//! - **Complex Resources**: These are created by combining other resources and an energy cell.
+//!   Examples include `Water` and `Diamond`.
 //!
-//! The module uses macros to define the resources and their properties.
 //!
 //! ## Generator and Combinator
 //!
@@ -803,7 +802,7 @@ mod tests {
 
         // Test fail no recipe
         let mut cell = get_charged_cell();
-        let mut combinator = Combinator::new(); // No recipes
+        let combinator = Combinator::new(); // No recipes
         let hydrogen = generator.make_hydrogen(&mut get_charged_cell()).unwrap();
         let oxygen = generator.make_oxygen(&mut get_charged_cell()).unwrap();
         let request = ComplexResourceRequest::Water(hydrogen, oxygen);
