@@ -93,7 +93,6 @@ pub struct Combinator {
     set: HashSet<ComplexResourceType>,
 }
 
-
 impl Default for Combinator {
     fn default() -> Self {
         Self::new()
@@ -801,7 +800,6 @@ define_combination_rules!(
     Dolphin from Water + Life ,
     AIPartner from Robot +  Diamond
 );
-
 
 #[cfg(test)]
 mod tests {
