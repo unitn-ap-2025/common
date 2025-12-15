@@ -425,6 +425,26 @@ macro_rules! define_resources {
                         }
                     )*
                 }
+
+                  pub fn try_make(&self , req :  BasicResourceType , energy_cell: &mut EnergyCell) -> Result<BasicResource, String> {
+                    if !energy_cell.is_charged() {
+                        return Err("The energy is not charged".to_string());
+                    }
+                    match req {
+                        $(
+                            BasicResourceType::$basic => {
+                            if self.set.contains( &BasicResourceType::$basic ) {
+                                energy_cell.discharge()?;
+                                Ok($basic{ _private: () }.to_basic())
+                            }
+                            else {
+                                Err(format!("Missing recipe for {:?}", stringify!($basic) ))
+                            }
+                        },
+                        )*
+                    }
+                }
+
             }
         };
     }
@@ -465,6 +485,28 @@ macro_rules! define_combination_rules {
                         }
                     )*
                 }
+
+                 pub fn try_make(&self , req :  ComplexResourceRequest , energy_cell: &mut EnergyCell) -> Result<ComplexResource, (String, GenericResource , GenericResource )> {
+                    match req {
+                        $(
+                        ComplexResourceRequest::$result(r1, r2) => {
+                            if self.set.contains( &ComplexResourceType::$result ) {
+                                    paste::paste! {
+                                     [<$result:lower _fn >](r1,r2 , energy_cell ).map(|r| {
+                                            r.to_complex()
+                                        }).map_err(|(s , r1 ,r2)| {
+                                            (s , r1.to_generic() ,r2.to_generic())
+                                        })
+                                    }
+                            }
+                            else {
+                               Err((format!("there isn't a recipe for {:?}", stringify!($result)), r1.to_generic() ,r2.to_generic() ) )
+                            }
+                        },
+                        )*
+                    }
+                }
+
             }
 
         };
