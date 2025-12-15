@@ -38,7 +38,9 @@ pub trait Resource: Display {
 /// [`ComplexResourceType`], without actually containing the underlying resource.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ResourceType {
+    /// A basic resource type.
     Basic(BasicResourceType),
+    /// A complex resource type.
     Complex(ComplexResourceType),
 }
 
@@ -46,7 +48,9 @@ pub enum ResourceType {
 /// [`ComplexResource`].
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum GenericResource {
+    /// A basic resource.
     BasicResources(BasicResource),
+    /// A complex resource.
     ComplexResources(ComplexResource),
 }
 
@@ -72,12 +76,24 @@ impl Hash for BasicResourceType {
     }
 }
 
-/// Contains all the recipes available to a planet and enables the creation of complex
-/// resources.
+/// Manages the recipes and production of complex resources for a planet.
+///
+/// The `Combinator` is responsible for storing the allowed recipes for [`ComplexResource`]s
+/// and validating creation requests.
+///
+/// It works in conjunction with an [`EnergyCell`]. To create a complex resource,
+/// the combinator:
+/// 1. Checks if the requested resource type is in its set of allowed recipes.
+/// 2. Consumes the required input resources.
+/// 3. Discharges the provided `EnergyCell` to power the combination process.
+///
+/// Each planet instance has its own `Combinator` initialized with a specific set of rules.
 #[derive(Debug)]
 pub struct Combinator {
     set: HashSet<ComplexResourceType>,
 }
+
+
 impl Default for Combinator {
     fn default() -> Self {
         Self::new()
@@ -120,8 +136,17 @@ impl Combinator {
     }
 }
 
-/// Contains all the recipes available to a planet and enables the creation of basic
-/// resources.
+/// Manages the recipes and production of basic resources for a planet.
+///
+/// The `Generator` is responsible for storing the allowed recipes for [`BasicResource`]s
+/// and validating creation requests.
+///
+/// Unlike the [`Combinator`], the `Generator` creates resources "from scratch" (using only energy).
+/// To create a basic resource, the generator:
+/// 1. Checks if the requested resource type is in its set of allowed recipes.
+/// 2. Discharges the provided [`EnergyCell`] to power the generation process.
+///
+/// Each planet instance has its own `Generator` initialized with a specific set of rules.
 #[derive(Debug)]
 pub struct Generator {
     set: HashSet<BasicResourceType>,
@@ -212,6 +237,9 @@ macro_rules! define_resources {
         (Basic: [$($basic:ident),* $(,)?], Complex: [$($complex:ident),* $(,)?]) => {
 
             $(
+                /// A basic resource.
+                ///
+                /// This struct represents the basic resource `$basic`.
                 #[derive(Debug, PartialEq,Eq,Hash)]
                 pub struct $basic { _private: () }
 
@@ -222,18 +250,24 @@ macro_rules! define_resources {
                 }
 
                 impl $basic {
+                    /// Converts this resource to a [`ResourceType`].
                     pub fn to_type(&self) -> ResourceType {
                         match self {
                             $basic { .. } =>  ResourceType::Basic(BasicResourceType::$basic),
                         }
                     }
+
+                    /// Converts this resource to a [`GenericResource`].
                     pub fn to_generic(self) -> GenericResource {
                         GenericResource::BasicResources( BasicResource::$basic(self) )
                     }
 
+                    /// Converts this resource to a [`BasicResource`].
                     pub fn to_basic(self) -> BasicResource {
                         BasicResource::$basic( self )
                     }
+
+                    /// Returns the [`BasicResourceType`] of this resource.
                     pub fn to_basic_type(&self) -> BasicResourceType {
                         match self {
                             $basic { .. } =>  BasicResourceType::$basic,
@@ -257,6 +291,9 @@ macro_rules! define_resources {
             )*
 
             $(
+                /// A complex resource.
+                ///
+                /// This struct represents the complex resource `$complex`.
                 #[derive(Debug, PartialEq,Eq,Hash)]
                 pub struct $complex {
                     _private: (),
@@ -274,18 +311,24 @@ macro_rules! define_resources {
                 }
 
                  impl $complex {
+                        /// Converts this resource to a [`ResourceType`].
                         pub fn to_type(&self) -> ResourceType {
                             match self {
                                 $complex { .. } =>  ResourceType::Complex(ComplexResourceType::$complex),
                             }
                         }
+
+                        /// Converts this resource to a [`GenericResource`].
                         pub fn to_generic(self) -> GenericResource {
                             GenericResource::ComplexResources( ComplexResource::$complex(self) )
                         }
 
+                        /// Converts this resource to a [`ComplexResource`].
                         pub fn to_complex(self) -> ComplexResource {
                             ComplexResource::$complex( self )
                         }
+
+                        /// Returns the [`ComplexResourceType`] of this resource.
                         pub fn to_complex_type(&self) -> ComplexResourceType {
                             match self {
                                 $complex { .. } =>  ComplexResourceType::$complex,
@@ -301,37 +344,45 @@ macro_rules! define_resources {
 
             impl ResourceType{
                     paste::paste! {
-                        $( pub fn [< make_ $complex:lower >] () -> Self {
+                        $(
+                            /// Creates a new [`ResourceType::Complex`] variant for `$complex`.
+                            pub fn [< make_ $complex:lower >] () -> Self {
                                 ResourceType::Complex(ComplexResourceType::$complex)
                             }
                         )*
                     }
 
                     paste::paste! {
-                        $( pub fn [< is_ $complex:lower >] (&self) -> bool {
-                             if let   ResourceType::Complex(ComplexResourceType::$complex) = self {
-                            true
-                        }
-                            else { false
-                            }
+                        $(
+                            /// Returns `true` if the resource type is [`ComplexResourceType::$complex`].
+                            pub fn [< is_ $complex:lower >] (&self) -> bool {
+                                if let ResourceType::Complex(ComplexResourceType::$complex) = self {
+                                    true
+                                } else {
+                                    false
+                                }
                             }
                         )*
                     }
 
                      paste::paste! {
-                        $( pub fn [< make_ $basic:lower >] () -> Self {
+                        $(
+                            /// Creates a new [`ResourceType::Basic`] variant for `$basic`.
+                            pub fn [< make_ $basic:lower >] () -> Self {
                                 ResourceType::Basic(BasicResourceType::$basic)
                             }
                         )*
                     }
 
                     paste::paste! {
-                        $( pub fn [< is_ $basic:lower >] (&self) -> bool {
-                             if let   ResourceType::Basic(BasicResourceType::$basic) = self {
-                            true
-                        }
-                            else { false
-                            }
+                        $(
+                            /// Returns `true` if the resource type is [`BasicResourceType::$basic`].
+                            pub fn [< is_ $basic:lower >] (&self) -> bool {
+                                if let ResourceType::Basic(BasicResourceType::$basic) = self {
+                                    true
+                                } else {
+                                    false
+                                }
                             }
                         )*
                     }
@@ -341,12 +392,14 @@ macro_rules! define_resources {
             impl BasicResourceType{
 
                     paste::paste! {
-                        $( pub fn [< is_ $basic:lower >] (&self) -> bool {
-                             if let   BasicResourceType::$basic = self {
-                            true
-                        }
-                            else { false
-                            }
+                        $(
+                            /// Returns `true` if the resource type is `$basic`.
+                            pub fn [< is_ $basic:lower >] (&self) -> bool {
+                                if let BasicResourceType::$basic = self {
+                                    true
+                                } else {
+                                    false
+                                }
                             }
                         )*
                     }
@@ -357,44 +410,62 @@ macro_rules! define_resources {
                impl ComplexResourceType{
 
                     paste::paste! {
-                        $( pub fn [< is_ $complex:lower >] (&self) -> bool {
-                             if let   ComplexResourceType::$complex = self {
-                            true
-                        }
-                            else { false
-                            }
+                        $(
+                            /// Returns `true` if the resource type is `$complex`.
+                            pub fn [< is_ $complex:lower >] (&self) -> bool {
+                                if let ComplexResourceType::$complex = self {
+                                    true
+                                } else {
+                                    false
+                                }
                             }
                         )*
                     }
 
             }
 
-            /// An enum that identifies a [`ComplexResource`] without actually containing the
+            /// An enum that identifies a [`ComplexResource`] type without actually containing the
             /// underlying resource.
+            ///
             #[derive(Debug,Clone,Copy, Eq)]
             pub enum ComplexResourceType {
-                $($complex,)*
+                $(
+                    $complex,
+                )*
             }
 
             impl BasicResource {
+                /// Returns the [`BasicResourceType`] of this resource.
                 pub fn get_type(&self) -> BasicResourceType {
                     match self {
                         $( BasicResource:: $basic (_) => BasicResourceType::$basic, )*
                     }
                 }
                 paste::paste!{
-                           $( pub fn [< to_ $basic:lower >] (self) -> Result< $basic , String> {
-                            match self {
-                                BasicResource:: $basic (h) => Ok(h) ,
-                                _ => Err( "Different type found".into() )
+                           $(
+                            /// Attempts to convert the `BasicResource` into a `$basic`.
+                            ///
+                            /// # Returns
+                            /// * `Ok($basic)` if the resource is `$basic`.
+                            /// * `Err(String)` if the resource is of a different type.
+                            pub fn [< to_ $basic:lower >] (self) -> Result< $basic , String> {
+                                match self {
+                                    BasicResource:: $basic (h) => Ok(h) ,
+                                    _ => Err( "Different type found".into() )
+                                }
                             }
-                        }
-                    )*
+                        )*
                 }
             }
             impl GenericResource {
                 paste::paste! {
-                   $( pub fn [< to_ $complex:lower >] (self) -> Result< $complex,String> {
+                   $(
+                        /// Attempts to convert the `GenericResource` into a `$complex`.
+                        ///
+                        /// # Returns
+                        /// * `Ok($complex)` if the resource is `$complex`.
+                        /// * `Err(String)` if the resource is of a different type.
+                        pub fn [< to_ $complex:lower >] (self) -> Result< $complex,String> {
                             match self {
                                 GenericResource::ComplexResources(ComplexResource:: $complex(h))  => Ok(h),
                                 _ => Err("Different type found".into())
@@ -404,7 +475,13 @@ macro_rules! define_resources {
                 }
 
                 paste::paste! {
-                   $( pub fn [< to_ $basic:lower >] (self) -> Result< $basic , String> {
+                   $(
+                        /// Attempts to convert the `GenericResource` into a `$basic`.
+                        ///
+                        /// # Returns
+                        /// * `Ok($basic)` if the resource is `$basic`.
+                        /// * `Err(String)` if the resource is of a different type.
+                        pub fn [< to_ $basic:lower >] (self) -> Result< $basic , String> {
                             match self {
                                 GenericResource::BasicResources(BasicResource:: $basic(h))  => Ok(h),
                                 _ => Err("Different type found".into())
@@ -415,6 +492,7 @@ macro_rules! define_resources {
             }
 
             impl ComplexResource {
+                /// Returns the [`ComplexResourceType`] of this resource.
                 pub fn get_type(&self) -> ComplexResourceType {
                     match self {
                          $( ComplexResource:: $complex (_) => ComplexResourceType::$complex, )*
@@ -422,12 +500,18 @@ macro_rules! define_resources {
                 }
 
                 paste::paste!{
-                   $( pub fn [< to_ $complex:lower >] (self) -> Result< $complex,String> {
-                    match self {
-                        ComplexResource:: $complex( h) => Ok(h) ,
-                        _ => Err("Different type found".into())
+                   $(
+                    /// Attempts to convert the `ComplexResource` into a `$complex`.
+                    ///
+                    /// # Returns
+                    /// * `Ok($complex)` if the resource is `$complex`.
+                    /// * `Err(String)` if the resource is of a different type.
+                    pub fn [< to_ $complex:lower >] (self) -> Result< $complex,String> {
+                        match self {
+                            ComplexResource:: $complex( h) => Ok(h) ,
+                            _ => Err("Different type found".into())
+                        }
                     }
-                }
                 )*
                 }
             }
@@ -450,23 +534,41 @@ macro_rules! define_resources {
                 }
             }
 
-            /// An enum that gives the choice between every possible basic resource.
+            /// An enum that provides a unified type for all possible basic resources.
+            ///
+            /// This enum wraps every generated basic resource struct (e.g., `Oxygen`, `Hydrogen`)
+            /// into a single type. It is useful when you need to store or pass around any basic
+            /// resource without knowing its specific concrete type at compile time.
             #[derive(Debug, PartialEq,Eq,Hash)]
             pub enum BasicResource {
-                $($basic($basic),)*
+                $(
+                    $basic($basic),
+                )*
             }
 
-            /// An enum that gives the choice between every possible complex resource.
+            /// An enum that provides a unified type for all possible complex resources.
+            ///
+            /// This enum wraps every generated complex resource struct (e.g., `Water`, `Diamond`)
+            /// into a single type. It is useful when you need to store or pass around any complex
+            /// resource without knowing its specific concrete type at compile time.
             #[derive(Debug ,PartialEq,Eq,Hash)]
             pub enum ComplexResource {
-                $($complex($complex),)*
+                $(
+                    $complex($complex),
+                )*
             }
 
-            /// An enum that identifies a [`BasicResource`] without actually containing the
+            /// An enum that identifies a [`BasicResource`] type without actually containing the
             /// underlying resource.
+            ///
+            /// This enum is generated by the `define_resources!` macro and contains a variant for
+            /// each basic resource defined in the macro invocation. It is primarily used for
+            /// type identification and recipe definitions within the [`Generator`].
             #[derive(Debug,Clone,Copy,Eq)]
             pub enum BasicResourceType {
-                $($basic,)*
+                $(
+                    $basic,
+                )*
             }
 
 
@@ -475,8 +577,7 @@ macro_rules! define_resources {
                     $(
                          /// Creates a new `[<$basic>]` resource.
                          ///
-                         /// This method is generated by the `define_resources!` macro for each basic
-                         /// resource. It attempts to create a new instance of the corresponding basic
+                         /// This method attempts to create a new instance of the corresponding basic
                          /// resource by discharging an `EnergyCell`.
                          ///
                          /// # Arguments
@@ -486,11 +587,10 @@ macro_rules! define_resources {
                          ///
                          /// # Returns
                          ///
-                         /// A `Result` which is:
-                         /// * `Ok([<$basic>])` if the resource was successfully created and the
-                         ///   `energy_cell` was discharged.
-                         /// * `Err(String)` if there is no recipe for the resource or the `energy_cell`
-                         ///   is not charged.
+                         /// A `Result` indicating success or failure:
+                         /// * `Ok([<$basic>])`: The resource was successfully created.
+                         /// * `Err(String)`: An error occurred, either because there is no recipe
+                         ///   for this resource or the `energy_cell` was not charged.
                          pub fn [<make_ $basic:lower>]  (&self, energy_cell : &mut EnergyCell ) -> Result<$basic, String > {
                              let b = BasicResourceType::$basic;
                             if let Some(_f_enum)  =  &self.set.get(&b) {
@@ -515,11 +615,11 @@ macro_rules! define_resources {
                   ///
                   /// # Returns
                   ///
-                  /// A `Result` which is:
-                  /// * `Ok(BasicResource)` if the resource was successfully created and the
-                  ///   `energy_cell` was discharged.
-                  /// * `Err(String)` if the `energy_cell` is not charged or there is no recipe
-                  ///   for the requested resource.
+                  /// A `Result` indicating success or failure:
+                  /// * `Ok(BasicResource)`: The requested resource was successfully created and
+                  ///   wrapped in the `BasicResource` enum.
+                  /// * `Err(String)`: An error occurred, such as the `energy_cell` not being charged
+                  ///   or a missing recipe for the requested resource.
                   pub fn try_make(&self , req :  BasicResourceType , energy_cell: &mut EnergyCell) -> Result<BasicResource, String> {
                     if !energy_cell.is_charged() {
                         return Err("The energy is not charged".to_string());
@@ -589,11 +689,18 @@ macro_rules! define_combination_rules {
             )*
 
             paste::paste! {
-                /// An enum that gives a structured way to pass around the request to produce a
-                /// complex resource.
+                /// An enum that represents a structured request to produce a specific complex resource.
+                ///
+                /// Each variant corresponds
+                /// to a combination rule and holds the necessary input resources (`lhs` and `rhs`) required
+                /// to produce the target complex resource.
+                ///
+                /// It allows passing all ingredients for a reaction as a single object to the [`Combinator`].
                 #[derive(Debug, PartialEq,Eq,Hash )]
                 pub enum ComplexResourceRequest{
-                     $([<$result >]( $lhs, $rhs ), )*
+                     $(
+                        [<$result >]( $lhs, $rhs ),
+                     )*
                 }
             }
 
@@ -602,8 +709,7 @@ macro_rules! define_combination_rules {
                     $(
                          /// Creates a new `[<$result>]` resource.
                          ///
-                         /// This method is generated by the `define_combination_rules!` macro for each
-                         /// complex resource. It attempts to create a new instance of the corresponding
+                         /// This method attempts to create a new instance of the corresponding
                          /// complex resource by combining two input resources (`r1` and `r2`) and
                          /// discharging an `EnergyCell`.
                          ///
@@ -616,11 +722,12 @@ macro_rules! define_combination_rules {
                          ///
                          /// # Returns
                          ///
-                         /// A `Result` which is:
-                         /// * `Ok([<$result>])` if the resource was successfully created and the
-                         ///   `energy_cell` was discharged.
-                         /// * `Err((String, [$lhs], [$rhs]))` if there is no recipe for the resource,
-                         ///   the `energy_cell` is not charged, or the input resources are incorrect.
+                         /// A `Result` indicating success or failure:
+                         /// * `Ok([<$result>])`: The complex resource was successfully created.
+                         /// * `Err((String, [$lhs], [$rhs]))`: An error occurred. The tuple contains:
+                         ///     1. An error message string (e.g., missing recipe, uncharged cell).
+                         ///     2. The original input resource `r1` (returned so it is not lost).
+                         ///     3. The original input resource `r2` (returned so it is not lost).
                          pub fn [<make_ $result:lower>]  (&self, r1 :  $lhs  ,r2 : $rhs , energy_cell: &mut EnergyCell  ) -> Result<$result, (String, $lhs , $rhs )  > {
                              let c = ComplexResourceType::$result;
                             if let Some(_f_enum)  =  &self.set.get( &c ) {
@@ -646,13 +753,15 @@ macro_rules! define_combination_rules {
                  ///
                  /// # Returns
                  ///
-                 /// A `Result` which is:
-                 /// * `Ok(ComplexResource)` if the complex resource was successfully created and
-                 ///   the `energy_cell` was discharged.
-                 /// * `Err((String, GenericResource, GenericResource))` if there is no recipe
-                 ///   for the requested complex resource, the `energy_cell` is not charged,
-                 ///   or the input resources are incorrect. The original input resources are
-                 ///   returned in the error tuple for potential re-use.
+                 /// A `Result` indicating success or failure:
+                 /// * `Ok(ComplexResource)`: The complex resource was successfully created.
+                 /// * `Err((String, GenericResource, GenericResource))`: An error occurred. The tuple contains:
+                 ///     1. An error message string (e.g., missing recipe, uncharged cell).
+                 ///     2. The first input resource as a `GenericResource`.
+                 ///     3. The second input resource as a `GenericResource`.
+                 ///
+                 /// The input resources are returned in the error case to prevent ownership loss
+                 /// on failure.
                  pub fn try_make(&self , req :  ComplexResourceRequest , energy_cell: &mut EnergyCell) -> Result<ComplexResource, (String, GenericResource , GenericResource )> {
                     match req {
                         $(
@@ -692,7 +801,7 @@ define_combination_rules!(
     Dolphin from Water + Life ,
     AIPartner from Robot +  Diamond
 );
-// ... (End of your define_combination_rules! macro call)
+
 
 #[cfg(test)]
 mod tests {
@@ -965,12 +1074,18 @@ mod tests {
     fn test_generic_resource_conversions() {
         let oxygen = Oxygen { _private: () };
         let generic_basic = oxygen.to_generic();
-        assert_eq!(generic_basic.get_type(), ResourceType::Basic(BasicResourceType::Oxygen));
+        assert_eq!(
+            generic_basic.get_type(),
+            ResourceType::Basic(BasicResourceType::Oxygen)
+        );
         assert!(generic_basic.to_oxygen().is_ok());
 
         let water = Water { _private: () };
         let generic_complex = water.to_generic();
-        assert_eq!(generic_complex.get_type(), ResourceType::Complex(ComplexResourceType::Water));
+        assert_eq!(
+            generic_complex.get_type(),
+            ResourceType::Complex(ComplexResourceType::Water)
+        );
         assert!(generic_complex.to_water().is_ok());
     }
 }
