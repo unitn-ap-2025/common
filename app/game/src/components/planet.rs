@@ -1,6 +1,6 @@
 //! # Planet module
 //! This module provides common definitions for planets and their associated types
-//! that need be used by a group to construct its own planet.
+//! that will be used by a group to construct its own planet.
 //! The [Planet] struct is the **main component**: an instance of it represents the
 //! actual planet and contains all the logic and state (see [PlanetState]) needed to work as one, in fact
 //! this is what the orchestrator will interact with.
@@ -8,7 +8,7 @@
 //! You can instantiate a new planet by calling the [Planet::new] constructor method and passing
 //! valid construction parameters to it (look into its documentation to learn more).
 //!
-//! One of the construction parameters is a group-defined struct that implements the [PlanetAI] trait,
+//! One of the construction parameters of a planet is a group-defined struct that implements the [PlanetAI] trait,
 //! which defines several methods for handling messages coming from the orchestrator and the explorers. This is
 //! the core of each group's planet implementation, as it defines the planet *behavior*, that is
 //! how a planet "reacts" to the possible events or requests.
@@ -73,11 +73,11 @@
 //! // This is the group's "export" function. It will be called by
 //! // the orchestrator to spawn your planet.
 //! pub fn create_planet(
+//!     id: u32,
 //!     rx_orchestrator: Receiver<messages::OrchestratorToPlanet>,
 //!     tx_orchestrator: Sender<messages::PlanetToOrchestrator>,
 //!     rx_explorer: Receiver<messages::ExplorerToPlanet>,
 //! ) -> Planet {
-//!     let id = 1;
 //!     let ai = AI {};
 //!     let gen_rules = vec![/* your recipes */];
 //!     let comb_rules = vec![/* your recipes */];
@@ -106,14 +106,17 @@ use crossbeam_channel::{Receiver, Sender, select_biased};
 use std::collections::HashMap;
 use std::slice::{Iter, IterMut};
 
-/// The trait that defines the behavior of a planet.
+/// The trait that defines the **behavior** of a planet, meaning how it reacts
+/// to messages coming from the orchestrator and explorers. This is done through trait methods
+/// acting as *handlers* for the messages.
 ///
 /// Structs implementing this trait are intended to be passed to the
-/// [Planet] constructor, so that the handlers can be invoked by the planet
-/// internal logic when certain messages are received on any of the planet channels.
+/// [Planet] constructor, so that the handlers (methods of the trait) can be invoked by the planet
+/// default logic when certain messages are received on the planet channels.
 ///
 /// The handlers can alter the planet state by accessing the
 /// `state` parameter, which is passed to the methods as a mutable borrow.
+/// The [Generator] and [Combinator] of the planet are also passed as parameters.
 pub trait PlanetAI: Send {
     /// This handler will be invoked when a [OrchestratorToPlanet::Sunray]
     /// message is received. The `sunray` parameter is the actual [Sunray] struct
@@ -144,8 +147,8 @@ pub trait PlanetAI: Send {
     /// message is received.
     ///
     /// # Returns
-    /// Should return a [DummyPlanetState] instance representing the current state
-    /// of the planet.
+    /// A [DummyPlanetState] instance that *should* represent
+    /// the current state of the planet.
     fn handle_internal_state_req(
         &mut self,
         state: &mut PlanetState,
@@ -153,8 +156,9 @@ pub trait PlanetAI: Send {
         combinator: &Combinator,
     ) -> DummyPlanetState;
 
-    /// Handler for **all** messages received by an explorer (receiving
-    /// end of the [ExplorerToPlanet] channel).
+    /// Handler for **all** messages received by explorers (receiving
+    /// end of the [ExplorerToPlanet] channel). The id of the sender explorer
+    /// is part of the `msg` struct.
     ///
     /// # Returns
     /// This method can return an optional response to the message, which will
@@ -169,7 +173,7 @@ pub trait PlanetAI: Send {
 
     /// This method will be invoked when an explorer (identified by the `explorer_id`
     /// parameter) lands on the planet.
-    #[allow(unused)]
+    #[allow(unused_variables)]
     fn on_explorer_arrival(
         &mut self,
         state: &mut PlanetState,
@@ -181,7 +185,7 @@ pub trait PlanetAI: Send {
 
     /// This method will be invoked when an explorer (identified by the `explorer_id`
     /// parameter) leaves the planet.
-    #[allow(unused)]
+    #[allow(unused_variables)]
     fn on_explorer_departure(
         &mut self,
         state: &mut PlanetState,
@@ -195,14 +199,14 @@ pub trait PlanetAI: Send {
     /// is received, but **only if** the planet is currently in a *stopped* state.
     ///
     /// Start messages received when planet is already running are **ignored**.
-    #[allow(unused)]
+    #[allow(unused_variables)]
     fn on_start(&mut self, state: &PlanetState, generator: &Generator, combinator: &Combinator) {}
 
     /// This method will be invoked when a [OrchestratorToPlanet::StopPlanetAI]
     /// is received, but **only if** the planet is currently in a *running* state.
     ///
     /// Stop messages received when planet is already stopped are **ignored**.
-    #[allow(unused)]
+    #[allow(unused_variables)]
     fn on_stop(&mut self, state: &PlanetState, generator: &Generator, combinator: &Combinator) {}
 }
 
@@ -216,7 +220,7 @@ pub struct PlanetConstraints {
 
 /// Planet types definitions, intended to be passed
 /// to the planet constructor. Identifies the planet rules constraints,
-/// with each type having its own.
+/// with each type having its own rules.
 #[derive(Debug, Clone, Copy)]
 pub enum PlanetType {
     A,
@@ -229,7 +233,7 @@ impl PlanetType {
     const N_ENERGY_CELLS: usize = 5;
     const N_RESOURCE_COMB_RULES: usize = 6;
 
-    /// Returns a tuple with the constraints associated to the planet type,
+    /// Returns the constraints associated to the planet type,
     /// as described in the project specifications.
     pub fn constraints(&self) -> PlanetConstraints {
         match self {
@@ -262,12 +266,8 @@ impl PlanetType {
 }
 
 /// This struct is a representation of the internal state
-/// of the planet. Through its public methods, it gives access to the all resources
-/// of the planet:
-/// - A vec of [EnergyCell].
-/// - An optional [Rocket], that can be built accordingly to the planet type.
-/// - [Generator] for generating basic resources.
-/// - [Combinator] for combining basic resources into complex ones.
+/// of the planet. Through its public methods, it gives access to the
+/// energy cells and rocket construction of the planet.
 pub struct PlanetState {
     id: u32,
     energy_cells: Vec<EnergyCell>,
@@ -523,7 +523,7 @@ impl Planet {
     /// to the different messages.
     ///
     /// This method is *blocking* and should be called by the orchestrator in a separate thread.
-    /// It returns with an [Ok] when the planet has been **destroyed** (killed).
+    /// It returns with an empty [Ok] when the planet has been **killed** (destroyed).
     ///
     /// # Errors
     /// If the orchestrator disconnects from the channel, this will return an [Err].
