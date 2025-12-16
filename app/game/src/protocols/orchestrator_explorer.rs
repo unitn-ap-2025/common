@@ -10,6 +10,7 @@ use crossbeam_channel::Sender;
 use std::collections::HashSet;
 use enum_as_inner::EnumAsInner;
 use strum_macros::EnumDiscriminants;
+use crate::utils::ID;
 
 /// This enum describes all possible messages from the Orchestrator to an Explorer
 #[derive(Debug, EnumAsInner,EnumDiscriminants)]
@@ -74,7 +75,7 @@ pub enum OrchestratorToExplorer {
     /// **Response To**: [ExplorerToOrchestrator::NeighborsRequest]
     NeighborsResponse {
         ///The list of IDs of the planets to which it can be moved
-        neighbors: Vec<u32>,
+        neighbors: Vec<ID>,
     },
 }
 /// This enum describes all possible messages from an Explorer to the Orchestrator
@@ -85,45 +86,45 @@ pub enum ExplorerToOrchestrator<T> {
     /// **Response To**: [OrchestratorToExplorer::StartExplorerAI]
     StartExplorerAIResult {
         ///The ID of the Explorer sending the message
-        explorer_id: u32,
+        explorer_id: ID,
     },
     /// This variant is used to acknowledge the killing of an Explorer
     /// **Response To**: [OrchestratorToExplorer::KillExplorer]
     KillExplorerResult {
         ///The ID of the Explorer sending the message
-        explorer_id: u32,
+        explorer_id: ID,
     },
     /// This variant is used to acknowledge the reset of the Explorer AI
     /// **Response To**: [OrchestratorToExplorer::ResetExplorerAI]
     ResetExplorerAIResult {
         ///The ID of the Explorer sending the message
-        explorer_id: u32,
+        explorer_id: ID,
     },
     /// This variant is used to acknowledge the stopping of the Explorer AI
     /// **Response To**: [OrchestratorToExplorer::StopExplorerAI]
     StopExplorerAIResult {
         ///The ID of the Explorer sending the message
-        explorer_id: u32,
+        explorer_id: ID,
     },
     /// This variant is used to acknowledge the transfer of an Explorer to a new Planet
     /// **Response To**: [OrchestratorToExplorer::MoveToPlanet]
     MovedToPlanetResult {
         ///The ID of the Explorer sending the message
-        explorer_id: u32,
+        explorer_id: ID,
     },
     /// This variant is used to send the ID of the current planet on which the Explorer is located
     /// **Response To**: [OrchestratorToExplorer::CurrentPlanetRequest]
     CurrentPlanetResult {
         ///The ID of the explorer sending the message
-        explorer_id: u32,
+        explorer_id: ID,
         ///The ID of the planet it currently lives on
-        planet_id: u32,
+        planet_id: ID,
     },
     /// This variant is used to send the list of the available [BasicResourceType] in the Explorer's current planet
     /// **Response To**: [OrchestratorToExplorer::SupportedResourceRequest]
     SupportedResourceResult {
         ///The ID of the explorer sending the message
-        explorer_id: u32,
+        explorer_id: ID,
         ///The Set of [BasicResourceType] available in the Explorer's current planet
         supported_resources: HashSet<BasicResourceType>,
     },
@@ -131,7 +132,7 @@ pub enum ExplorerToOrchestrator<T> {
     /// **Response To**: [OrchestratorToExplorer::SupportedCombinationRequest]
     SupportedCombinationResult {
         ///The ID of the explorer sending the message
-        explorer_id: u32,
+        explorer_id: ID,
         ///The Set of [ComplexResourceType] available in the Explorer's current planet
         combination_list: HashSet<ComplexResourceType>,
     },
@@ -139,7 +140,7 @@ pub enum ExplorerToOrchestrator<T> {
     /// **Response To**: [OrchestratorToExplorer::GenerateResourceRequest]
     GenerateResourceResponse {
         ///The ID of the Explorer sending the message
-        explorer_id: u32,
+        explorer_id: ID,
         ///A Result consisting of: [Ok] if the requested resource has been generated and added to the Explorer Bag
         ///An [Err] String if the requested resource has not been generated
         generated: Result<(), String>,
@@ -148,7 +149,7 @@ pub enum ExplorerToOrchestrator<T> {
     /// **Response To**: [OrchestratorToExplorer::CombineResourceRequest]
     CombineResourceResponse {
         ///The ID of the Explorer sending the message
-        explorer_id: u32,
+        explorer_id: ID,
         ///A Result consisting of: [Ok] if the requested resource has been generated and added to the Explorer Bag
         ///An [Err] String if the requested resource has not been generated
         generated: Result<(), String>,
@@ -162,8 +163,8 @@ pub enum ExplorerToOrchestrator<T> {
     /// use common_game::protocols::messages::ExplorerToOrchestrator;
     ///
     /// pub struct DummyBag {
-    ///     pub complex: HashMap<ComplexResourceType, u32>,
-    ///     pub basic: HashMap<BasicResourceType, u32>,
+    ///     pub complex: HashMap<ComplexResourceType, ID>,
+    ///     pub basic: HashMap<BasicResourceType, ID>,
     /// }
     ///
     /// let message = ExplorerToOrchestrator::BagContentResponse {
@@ -178,7 +179,7 @@ pub enum ExplorerToOrchestrator<T> {
     /// **Response To**: [OrchestratorToExplorer::BagContentRequest]
     BagContentResponse {
         ///The ID of the explorer sending the message
-        explorer_id: u32,
+        explorer_id: ID,
         ///The generic bag_content type
         bag_content: T,
     },
@@ -187,27 +188,27 @@ pub enum ExplorerToOrchestrator<T> {
     /// **Use Case**: Knowing reachable planets from current planet
     NeighborsRequest {
         ///The ID of the Explorer sending the message
-        explorer_id: u32,
+        explorer_id: ID,
         ///The ID of the current planet the Explorer lives on
-        current_planet_id: u32,
+        current_planet_id: ID,
     },
     /// This variant asks the Orchestrator to be sent to the specified Planet
     /// **Expected Response**: [OrchestratorToExplorer::MoveToPlanet]
     /// **Use Case**: Autonomously asking to travel to a planet
     TravelToPlanetRequest {
         ///The ID of the Explorer sending the message
-        explorer_id: u32,
+        explorer_id: ID,
         ///The ID of the current planet the Explorer lives on
-        current_planet_id: u32,
+        current_planet_id: ID,
         ///The ID of the planet the Explorer wants to travel to
-        dst_planet_id: u32,
+        dst_planet_id: ID,
     },
 }
 
 impl<T> ExplorerToOrchestrator<T> {
     /// Helper method to extract the `explorer_id` field from any message variant
     /// without needing to match a specific one.
-    pub fn explorer_id(&self) -> u32 {
+    pub fn explorer_id(&self) -> ID {
         match self {
             Self::StartExplorerAIResult { explorer_id, .. } => *explorer_id,
             Self::KillExplorerResult { explorer_id, .. } => *explorer_id,

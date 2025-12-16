@@ -11,6 +11,7 @@ use crate::components::resource::{
 use std::collections::HashSet;
 use enum_as_inner::EnumAsInner;
 use strum_macros::EnumDiscriminants;
+use crate::utils::ID;
 
 /// This enum describes all possible messages from an Explorer to a Planet.
 #[derive(Debug, EnumAsInner, EnumDiscriminants)]
@@ -21,21 +22,21 @@ pub enum ExplorerToPlanet {
     /// **Use Case**: Asking Available Basic Resources
     SupportedResourceRequest {
         ///The ID of the Explorer sending the message
-        explorer_id: u32,
+        explorer_id: ID,
     },
     /// This variant is used to ask the Planet for the available [ComplexResourceType]
     /// **Expected Response**: [PlanetToExplorer::SupportedCombinationResponse]
     /// **Use Case**: Asking Available Complex Resources
     SupportedCombinationRequest {
         ///The ID of the Explorer sending the message
-        explorer_id: u32,
+        explorer_id: ID,
     },
     /// This variant is used to ask the Planet to generate a [BasicResource]
     /// **Expected Response**: [PlanetToExplorer::GenerateResourceResponse]
     /// **Use Case**: Asking to craft a Basic Resource
     GenerateResourceRequest {
         ///The ID of the Explorer sending the message
-        explorer_id: u32,
+        explorer_id: ID,
         ///The basic resource to be generated
         resource: BasicResourceType,
     },
@@ -44,7 +45,7 @@ pub enum ExplorerToPlanet {
     /// **Use Case**: Asking to craft a Complex Resource
     CombineResourceRequest {
         ///The ID of the Explorer sending the message
-        explorer_id: u32,
+        explorer_id: ID,
         ///The struct containing the complex resource to generate and the resources to be combined for the crafting to take place
         msg: ComplexResourceRequest,
     },
@@ -53,14 +54,14 @@ pub enum ExplorerToPlanet {
     /// **Use Case**: Asking the number of charged cells available
     AvailableEnergyCellRequest {
         ///The ID of the Explorer sending the message
-        explorer_id: u32,
+        explorer_id: ID,
     },
 }
 
 impl ExplorerToPlanet {
     /// Helper method to extract the `explorer_id` field from any message variant
     /// without needing to match a specific one.
-    pub fn explorer_id(&self) -> u32 {
+    pub fn explorer_id(&self) -> ID {
         match self {
             ExplorerToPlanet::SupportedResourceRequest { explorer_id, .. } => *explorer_id,
             ExplorerToPlanet::SupportedCombinationRequest { explorer_id, .. } => *explorer_id,
@@ -107,7 +108,7 @@ pub enum PlanetToExplorer {
     /// **Response To**: [ExplorerToPlanet::AvailableEnergyCellRequest]
     AvailableEnergyCellResponse {
         ///The number of charged cells available
-        available_cells: u32,
+        available_cells: ID,
     },
     /// This variant is used by planets that are currently in a *stopped* state
     /// to acknowledge any message coming from an explorer

@@ -12,6 +12,7 @@ use crate::protocols::planet_explorer::PlanetToExplorer;
 use crossbeam_channel::Sender;
 use enum_as_inner::EnumAsInner;
 use strum_macros::EnumDiscriminants;
+use crate::utils::ID;
 
 /// This enum describes all possible messages from the Orchestrator to a Planet
 #[derive(Debug, EnumAsInner, EnumDiscriminants)]
@@ -47,7 +48,7 @@ pub enum OrchestratorToPlanet {
     /// **Use Case**: Moving an explorer to this planet
     IncomingExplorerRequest {
         ///The incoming explorer's id
-        explorer_id: u32,
+        explorer_id: ID,
         ///The new sender half of the [crossbeam_channel] for the planet to communicate with the incoming explorer
         new_sender: Sender<PlanetToExplorer>,
     },
@@ -56,7 +57,7 @@ pub enum OrchestratorToPlanet {
     /// **Use Case**: Asking the planet to delete the [Sender] to the outgoing explorer
     OutgoingExplorerRequest {
         ///The outgoing explorer's id
-        explorer_id: u32,
+        explorer_id: ID,
     },
 }
 
@@ -68,14 +69,14 @@ pub enum PlanetToOrchestrator {
     /// Response to [OrchestratorToPlanet::Sunray]
     SunrayAck {
         ///ID of the planet sending the message
-        planet_id: u32,
+        planet_id: ID,
     },
     /// This variant is used to acknowledge the obtained [Asteroid] and notify the orchestrator
     /// if the planet has a rocket to defend itself
     /// Response to [OrchestratorToPlanet::Asteroid]
     AsteroidAck {
         ///ID of the planet sending the message
-        planet_id: u32,
+        planet_id: ID,
         ///Optional rocket returned to the Orchestrator to decide if planet can deflect the asteroid
         rocket: Option<Rocket>,
     },
@@ -83,24 +84,24 @@ pub enum PlanetToOrchestrator {
     /// Response to [OrchestratorToPlanet::StartPlanetAI]
     StartPlanetAIResult {
         ///ID of the planet sending the message
-        planet_id: u32,
+        planet_id: ID,
     },
     /// This variant is used to acknowledge the stopping of the Planet Ai, in this state a planet will only respond
     /// to incoming messages with a [PlanetToOrchestrator::Stopped]
     /// Response to [OrchestratorToPlanet::StopPlanetAI]
     StopPlanetAIResult {
         ///ID of the planet sending the message
-        planet_id: u32,
+        planet_id: ID,
     },
     /// This variant is used to acknowledge the killing of a planet, in this case the planet thread will be terminated
     /// and the planet will be deleted from the galaxy
     /// Response to [OrchestratorToPlanet::KillPlanet]
-    KillPlanetResult { planet_id: u32 },
+    KillPlanetResult { planet_id: ID },
     /// This variant is used to send back the Planet State
     /// Response to [OrchestratorToPlanet::InternalStateRequest]
     InternalStateResponse {
         ///ID of the planet sending the message
-        planet_id: u32,
+        planet_id: ID,
         ///A struct containing the relevant information of a Planet to be shown by the GUI
         planet_state: DummyPlanetState,
     },
@@ -108,9 +109,9 @@ pub enum PlanetToOrchestrator {
     /// Response to [OrchestratorToPlanet::IncomingExplorerRequest]
     IncomingExplorerResponse {
         ///ID of the planet sending the message
-        planet_id: u32,
+        planet_id: ID,
         ///Incoming explorer's ID
-        explorer_id: u32,
+        explorer_id: ID,
         ///Result of the operation:
         /// [Ok] if the [Sender] to the incoming explorer has been correctly set up
         /// [Err(String)] if an error occurred
@@ -120,9 +121,9 @@ pub enum PlanetToOrchestrator {
     /// Response to [OrchestratorToPlanet::OutgoingExplorerRequest]
     OutgoingExplorerResponse {
         ///ID of the planet sending the message
-        planet_id: u32,
+        planet_id: ID,
         ///Incoming explorer's ID
-        explorer_id: u32,
+        explorer_id: ID,
         ///Result of the operation:
         /// [Ok] if the [Sender] to the outgoing explorer has been correctly deleted
         /// [Err(String)] if an error occurred
@@ -132,13 +133,13 @@ pub enum PlanetToOrchestrator {
     /// to acknowledge any message coming from the Orchestrator (except for [OrchestratorToPlanet::StartPlanetAI])
     Stopped {
         ///ID of the planet sending the message
-        planet_id: u32,
+        planet_id: ID,
     },
 }
 impl PlanetToOrchestrator {
     /// Helper method to extract the `planet_id` field from any message variant
     /// without needing to match a specific one.
-    pub fn planet_id(&self) -> u32 {
+    pub fn planet_id(&self) -> ID {
         match self {
             PlanetToOrchestrator::SunrayAck { planet_id, .. } => *planet_id,
             PlanetToOrchestrator::AsteroidAck { planet_id, .. } => *planet_id,

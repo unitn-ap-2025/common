@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `try_make()` optional methods for generator and combinator to try build a generic resource
 - Added `StopExplorerAI` message that was missing
 - Added `EnumAsInner` and `EnumDiscriminants` to the message enums to provide useful features
+- Added utils.rs file with the public type ID
 
 ### Changed
 - **Breaking**: Removed generic `handle_orchestrator_msg()` handler from `PlanetAI` trait in favor of specialized handlers
@@ -23,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Sunray` and `InternalStateRequest` messages are now handled by dedicated methods instead of generic handler
 - **Breaking**: Added `explorer_id` to `IncomingExplorerResponse` and `OutgoingExplorerResponse` messages in `PlanetToOrchestrator` enum
 - **Breaking**: Changed messages module structure, now divided in three modules for readability purposes
+- Standardized IDs with the type ID as u32 alias in all the common crate
 ## [2.0.0-beta.1] - 2025-12-12
 
 ### Added
