@@ -1,7 +1,7 @@
 //! # Common Game Crate
 //!
 //! This crate includes the shared architecture, components, and communication
-//! protocols used by all implementations of the UniTN Advanced Programming course
+//! protocols used by all implementations of the `UniTN` Advanced Programming course
 //! project of 2025.
 //!
 //! The project consists in bulding a space simulation game where multiple explorers
