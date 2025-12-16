@@ -104,6 +104,7 @@ use crate::protocols::planet_explorer::{ExplorerToPlanet, PlanetToExplorer};
 use crossbeam_channel::{Receiver, Sender, select_biased};
 use std::collections::HashMap;
 use std::slice::{Iter, IterMut};
+use crate::utils::ID;
 
 /// The trait that defines the behavior of a planet.
 ///
@@ -174,7 +175,7 @@ pub trait PlanetAI: Send {
         state: &mut PlanetState,
         generator: &Generator,
         combinator: &Combinator,
-        explorer_id: u32,
+        explorer_id: ID,
     ) {
     }
 
@@ -186,7 +187,7 @@ pub trait PlanetAI: Send {
         state: &mut PlanetState,
         generator: &Generator,
         combinator: &Combinator,
-        explorer_id: u32,
+        explorer_id: ID,
     ) {
     }
 
@@ -268,7 +269,7 @@ impl PlanetType {
 /// - [Generator] for generating basic resources.
 /// - [Combinator] for combining basic resources into complex ones.
 pub struct PlanetState {
-    id: u32,
+    id: ID,
     energy_cells: Vec<EnergyCell>,
     rocket: Option<Rocket>,
     can_have_rocket: bool,
@@ -276,7 +277,7 @@ pub struct PlanetState {
 
 impl PlanetState {
     /// Returns the planet id.
-    pub fn id(&self) -> u32 {
+    pub fn id(&self) -> ID {
         self.id
     }
 
@@ -435,7 +436,7 @@ pub struct Planet {
     from_orchestrator: Receiver<OrchestratorToPlanet>,
     to_orchestrator: Sender<PlanetToOrchestrator>,
     from_explorers: Receiver<ExplorerToPlanet>,
-    to_explorers: HashMap<u32, Sender<PlanetToExplorer>>,
+    to_explorers: HashMap<ID, Sender<PlanetToExplorer>>,
 }
 
 impl Planet {
@@ -457,7 +458,7 @@ impl Planet {
     /// - `explorers_receiver` - The receiver half of the [ExplorerToPlanet] channel
     ///   where all explorers send messages to this planet (when they're visiting it).
     pub fn new(
-        id: u32,
+        id: ID,
         planet_type: PlanetType,
         ai: Box<dyn PlanetAI>,
         gen_rules: Vec<BasicResourceType>,
@@ -715,7 +716,7 @@ impl Planet {
     }
 
     /// Returns the planet id.
-    pub fn id(&self) -> u32 {
+    pub fn id(&self) -> ID {
         self.state.id
     }
 
@@ -758,7 +759,7 @@ mod tests {
     struct MockAI {
         start_called: bool,
         stop_called: bool,
-        sunray_count: u32,
+        sunray_count: ID,
     }
 
     impl MockAI {
