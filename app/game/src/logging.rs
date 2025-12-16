@@ -17,15 +17,26 @@ pub enum ActorType {
     SelfActor,
 }
 
-/// Log level / channel.
+/// Provides standardiezd log levels for all implementers to use
+/// Note: "event" here means a series of messages with a specific effect
 #[derive(Debug, Clone)]
 pub enum Channel {
+    /// Anything that leads to a panic
     Error,
+    /// Unexpected behavior that doesn’t stop the game/lead to a panic
     Warning,
+    /// Important events, to be emitted by the Orchestrator once the last ack message in the conversation is recieved.
+    /// The events this level should be used for are:
+    /// - Planet creation/destruction
+    /// - Planet/Explorer start/stop
+    /// - Explorer movement/death
     Info,
+    /// All other events that are not covered by [`Info`]
     Debug,
+    /// All messages
     Trace,
 }
+
 
 /// High-level event categories.
 #[derive(Debug, Clone)]
