@@ -24,7 +24,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Sunray` and `InternalStateRequest` messages are now handled by dedicated methods instead of generic handler
 - **Breaking**: Added `explorer_id` to `IncomingExplorerResponse` and `OutgoingExplorerResponse` messages in `PlanetToOrchestrator` enum
 - **Breaking**: Removed `protocol::messages` module replaced by `protocols::{orchestrator_explorer, orchestrator_planet, planet_explorer}`
-- **Migration note**: update messages imports from `protocol::messages` to `protocols::{orchestrator_explorer, orchestrator_planet, planet_explorer}` 
+- **Migration note**: update messages imports from `protocol::messages` to `protocols::{orchestrator_explorer, orchestrator_planet, planet_explorer}`
+- Updated logging system to use `u64` for timestamps and the `ID` type for sender/receiver identifiers
+- Replaced deprecated `lazy_static!` with `LazyLock` in `Forge` component for modern Rust patterns
+- **Breaking**: Renamed `planet_type` to `type_` in `Planet` component for clarity
+- Extracted `handle_orchestrator_msg()` helper method in `Planet` component for improved code organization
+- Simplified pattern matches in protocol files to use fallthrough for `explorer_id()` and `planet_id()` extraction
+- Enhanced documentation for logging channel and log levels with detailed descriptions
+
+### Fixed
+- Fixed doc comments in `EnergyCell` to satisfy Clippy pedantic warnings
+- Resolved various Clippy pedantic warnings throughout codebase for improved code quality 
 ## [2.0.0-beta.1] - 2025-12-12
 ### Added
 - Added `GUIDELINES.md` defining library maintenance standards for v2.0+

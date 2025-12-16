@@ -127,7 +127,7 @@ The goal is to maintain a consistent, safe, easy-to-use API that can be depended
 ## 8 - Formatting & Linting (must)
 
 We enforce strict linting using:  
-[`cargo clippy`](https://rust-lang.github.io/rust-clippy/) `-- -D warnings -A unused`
+[`cargo clippy`](https://rust-lang.github.io/rust-clippy/) `-- -D warnings -W clippy::pedantic -A unused`
 
 This means:
 - All Clippy warnings **except unused code** must be fixed before merging.
