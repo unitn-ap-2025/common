@@ -99,9 +99,8 @@ use crate::components::energy_cell::EnergyCell;
 use crate::components::resource::{BasicResourceType, Combinator, ComplexResourceType, Generator};
 use crate::components::rocket::Rocket;
 use crate::components::sunray::Sunray;
-use crate::protocols::messages::{
-    ExplorerToPlanet, OrchestratorToPlanet, PlanetToExplorer, PlanetToOrchestrator,
-};
+use crate::protocols::orchestrator_planet::{OrchestratorToPlanet, PlanetToOrchestrator};
+use crate::protocols::planet_explorer::{ExplorerToPlanet, PlanetToExplorer};
 use crossbeam_channel::{Receiver, Sender, select_biased};
 use std::collections::HashMap;
 use std::slice::{Iter, IterMut};
@@ -596,9 +595,9 @@ impl Planet {
 
                     Ok(OrchestratorToPlanet::IncomingExplorerRequest {
                         explorer_id,
-                        new_mpsc_sender,
+                        new_sender,
                     }) => {
-                        self.to_explorers.insert(explorer_id, new_mpsc_sender); // add new explorer channel
+                        self.to_explorers.insert(explorer_id, new_sender); // add new explorer channel
                         self.ai.on_explorer_arrival(&mut self.state, &self.generator, &self.combinator, explorer_id);
 
                         // send ack back to orchestrator
@@ -753,9 +752,7 @@ mod tests {
     use crate::components::resource::{BasicResourceType, Combinator, Generator};
     use crate::components::rocket::Rocket;
     use crate::components::sunray::Sunray;
-    use crate::protocols::messages::{
-        ExplorerToPlanet, OrchestratorToPlanet, PlanetToExplorer, PlanetToOrchestrator,
-    };
+    use crate::protocols::orchestrator_planet::{OrchestratorToPlanet, PlanetToOrchestrator};
 
     // --- Mock AI ---
     struct MockAI {
@@ -1182,7 +1179,7 @@ mod tests {
         orch_tx
             .send(OrchestratorToPlanet::IncomingExplorerRequest {
                 explorer_id,
-                new_mpsc_sender: expl_tx_local,
+                new_sender: expl_tx_local,
             })
             .unwrap();
 
