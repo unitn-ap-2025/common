@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `handle_internal_state_req()` method to `PlanetAI` trait for handling internal state requests
 - Added `on_explorer_arrival()` optional listener method with empty default implementation
 - Added `on_explorer_departure()` optional listener method with empty default implementation
+- Added `try_make()` optional methods for generator and combinator to try build a generic resource
 
 ### Changed
 - **Breaking**: Removed generic `handle_orchestrator_msg()` handler from `PlanetAI` trait in favor of specialized handlers
