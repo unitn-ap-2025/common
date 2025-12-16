@@ -6,14 +6,14 @@
 
 use crate::components::resource::{BasicResourceType, ComplexResourceType};
 use crate::protocols::planet_explorer::ExplorerToPlanet;
-use crossbeam_channel::Sender;
-use std::collections::HashSet;
-use enum_as_inner::EnumAsInner;
-use strum_macros::EnumDiscriminants;
 use crate::utils::ID;
+use crossbeam_channel::Sender;
+use enum_as_inner::EnumAsInner;
+use std::collections::HashSet;
+use strum_macros::EnumDiscriminants;
 
 /// This enum describes all possible messages from the Orchestrator to an Explorer
-#[derive(Debug, EnumAsInner,EnumDiscriminants)]
+#[derive(Debug, EnumAsInner, EnumDiscriminants)]
 #[strum_discriminants(name(OrchestratorToExplorerKind))]
 pub enum OrchestratorToExplorer {
     /// This variant is used to start an Explorer AI
