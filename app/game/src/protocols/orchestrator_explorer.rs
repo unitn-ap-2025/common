@@ -189,19 +189,19 @@ impl<T> ExplorerToOrchestrator<T> {
     /// without needing to match a specific one.
     pub fn explorer_id(&self) -> ID {
         match self {
-            Self::StartExplorerAIResult { explorer_id, .. } => *explorer_id,
-            Self::KillExplorerResult { explorer_id, .. } => *explorer_id,
-            Self::ResetExplorerAIResult { explorer_id, .. } => *explorer_id,
-            Self::MovedToPlanetResult { explorer_id, .. } => *explorer_id,
-            Self::CurrentPlanetResult { explorer_id, .. } => *explorer_id,
-            Self::SupportedResourceResult { explorer_id, .. } => *explorer_id,
-            Self::SupportedCombinationResult { explorer_id, .. } => *explorer_id,
-            Self::GenerateResourceResponse { explorer_id, .. } => *explorer_id,
-            Self::CombineResourceResponse { explorer_id, .. } => *explorer_id,
-            Self::BagContentResponse { explorer_id, .. } => *explorer_id,
-            Self::NeighborsRequest { explorer_id, .. } => *explorer_id,
-            Self::TravelToPlanetRequest { explorer_id, .. } => *explorer_id,
-            Self::StopExplorerAIResult { explorer_id, .. } => *explorer_id,
+            Self::StartExplorerAIResult { explorer_id, .. }
+            | Self::KillExplorerResult { explorer_id, .. }
+            | Self::ResetExplorerAIResult { explorer_id, .. }
+            | Self::MovedToPlanetResult { explorer_id, .. }
+            | Self::CurrentPlanetResult { explorer_id, .. }
+            | Self::SupportedResourceResult { explorer_id, .. }
+            | Self::SupportedCombinationResult { explorer_id, .. }
+            | Self::GenerateResourceResponse { explorer_id, .. }
+            | Self::CombineResourceResponse { explorer_id, .. }
+            | Self::BagContentResponse { explorer_id, .. }
+            | Self::NeighborsRequest { explorer_id, .. }
+            | Self::TravelToPlanetRequest { explorer_id, .. }
+            | Self::StopExplorerAIResult { explorer_id, .. } => *explorer_id,
         }
     }
 }

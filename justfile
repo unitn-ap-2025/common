@@ -2,7 +2,7 @@ fmt:
     cargo fmt
 
 lint:
-    cargo clippy -- -D warnings -A unused
+    cargo clippy -- -D warnings -W clippy::pedantic -A unused
 
 test:
     cargo test

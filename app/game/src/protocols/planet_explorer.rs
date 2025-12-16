@@ -61,14 +61,14 @@ pub enum ExplorerToPlanet {
 impl ExplorerToPlanet {
     /// Helper method to extract the `explorer_id` field from any message variant
     /// without needing to match a specific one.
-    #[must_use] 
+    #[must_use]
     pub fn explorer_id(&self) -> ID {
         match self {
-            ExplorerToPlanet::SupportedResourceRequest { explorer_id, .. } => *explorer_id,
-            ExplorerToPlanet::SupportedCombinationRequest { explorer_id, .. } => *explorer_id,
-            ExplorerToPlanet::GenerateResourceRequest { explorer_id, .. } => *explorer_id,
-            ExplorerToPlanet::CombineResourceRequest { explorer_id, .. } => *explorer_id,
-            ExplorerToPlanet::AvailableEnergyCellRequest { explorer_id, .. } => *explorer_id,
+            ExplorerToPlanet::SupportedResourceRequest { explorer_id, .. }
+            | ExplorerToPlanet::SupportedCombinationRequest { explorer_id, .. }
+            | ExplorerToPlanet::GenerateResourceRequest { explorer_id, .. }
+            | ExplorerToPlanet::CombineResourceRequest { explorer_id, .. }
+            | ExplorerToPlanet::AvailableEnergyCellRequest { explorer_id, .. } => *explorer_id,
         }
     }
 }

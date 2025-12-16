@@ -139,18 +139,18 @@ pub enum PlanetToOrchestrator {
 impl PlanetToOrchestrator {
     /// Helper method to extract the `planet_id` field from any message variant
     /// without needing to match a specific one.
-    #[must_use] 
+    #[must_use]
     pub fn planet_id(&self) -> ID {
         match self {
-            PlanetToOrchestrator::SunrayAck { planet_id, .. } => *planet_id,
-            PlanetToOrchestrator::AsteroidAck { planet_id, .. } => *planet_id,
-            PlanetToOrchestrator::StartPlanetAIResult { planet_id, .. } => *planet_id,
-            PlanetToOrchestrator::StopPlanetAIResult { planet_id, .. } => *planet_id,
-            PlanetToOrchestrator::KillPlanetResult { planet_id, .. } => *planet_id,
-            PlanetToOrchestrator::InternalStateResponse { planet_id, .. } => *planet_id,
-            PlanetToOrchestrator::IncomingExplorerResponse { planet_id, .. } => *planet_id,
-            PlanetToOrchestrator::OutgoingExplorerResponse { planet_id, .. } => *planet_id,
-            PlanetToOrchestrator::Stopped { planet_id, .. } => *planet_id,
+            PlanetToOrchestrator::SunrayAck { planet_id, .. }
+            | PlanetToOrchestrator::AsteroidAck { planet_id, .. }
+            | PlanetToOrchestrator::StartPlanetAIResult { planet_id, .. }
+            | PlanetToOrchestrator::StopPlanetAIResult { planet_id, .. }
+            | PlanetToOrchestrator::KillPlanetResult { planet_id, .. }
+            | PlanetToOrchestrator::InternalStateResponse { planet_id, .. }
+            | PlanetToOrchestrator::IncomingExplorerResponse { planet_id, .. }
+            | PlanetToOrchestrator::OutgoingExplorerResponse { planet_id, .. }
+            | PlanetToOrchestrator::Stopped { planet_id, .. } => *planet_id,
         }
     }
 }

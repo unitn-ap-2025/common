@@ -10,9 +10,6 @@
 use crate::components::asteroid::Asteroid;
 use crate::components::sunray::Sunray;
 
-use lazy_static::lazy_static;
-use std::sync::Mutex;
-
 /// Internal module containing global state used by the [Forge].
 ///
 /// # Internal API - Do not use directly
@@ -21,14 +18,12 @@ use std::sync::Mutex;
 /// cross-module access within the crate.
 /// It **is not** considered stable API and must not be used by external code.
 pub(crate) mod internal {
-    use super::{Mutex, lazy_static};
+    use std::sync::{LazyLock, Mutex};
 
-    lazy_static! {
-        /// Tracks whether a [Forge] instance has already been created.
-        ///
-        /// # Internal API - Do not use directly
-        pub(crate) static ref ALREADY_CREATED: Mutex<bool> = Mutex::new(false);
-    }
+    /// Tracks whether a [Forge] instance has already been created.
+    ///
+    /// # Internal API - Do not use directly
+    pub(crate) static ALREADY_CREATED: LazyLock<Mutex<bool>> = LazyLock::new(|| Mutex::new(false));
 }
 
 /// The `Forge` is a singleton-like generator used to create [`Asteroid`] and

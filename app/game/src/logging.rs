@@ -6,6 +6,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use std::fmt;
 
+use crate::utils::ID;
+
 /// Who is sending / receiving this event.
 #[derive(Debug, Clone)]
 pub enum ActorType {
@@ -64,11 +66,11 @@ pub type Payload = BTreeMap<String, String>;
 
 #[derive(Debug, Clone)]
 pub struct LogEvent {
-    pub timestamp_unix: i64,
+    pub timestamp_unix: u64,
     pub sender_type: ActorType,
-    pub sender_id: u64,
+    pub sender_id: ID,
     pub receiver_type: ActorType,
-    pub receiver_id: String,
+    pub receiver_id: ID,
     pub event_type: EventType,
     pub channel: Channel,
     pub payload: Payload,
@@ -78,9 +80,9 @@ impl LogEvent {
     /// Helper: create an event with the current UNIX timestamp.
     pub fn new(
         sender_type: ActorType,
-        sender_id: impl Into<u64>,
+        sender_id: impl Into<ID>,
         receiver_type: ActorType,
-        receiver_id: impl Into<String>,
+        receiver_id: impl Into<ID>,
         event_type: EventType,
         channel: Channel,
         payload: Payload,
@@ -88,7 +90,7 @@ impl LogEvent {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
-            .as_secs() as i64;
+            .as_secs();
 
         Self {
             timestamp_unix: now,

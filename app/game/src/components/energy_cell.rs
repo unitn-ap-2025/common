@@ -54,7 +54,10 @@ impl EnergyCell {
     /// # Returns
     ///
     /// - `Ok(())` if the cell was charged and is now discharged.
-    /// - `Err(String)` if the cell was already empty.
+    ///
+    /// # Errors
+    ///
+    /// - `Err(String)` if the cell was not charged.
     pub fn discharge(&mut self) -> Result<(), String> {
         if self.charge {
             self.charge = false;
@@ -73,7 +76,7 @@ impl EnergyCell {
 
 #[cfg(test)]
 mod tests {
-    //! Unit tests for the [EnergyCell] type.
+    //! Unit tests for the [`EnergyCell`] type.
     //!
     //! These tests validate the expected behavior of construction, charging,
     //! discharging, and error handling.

@@ -105,7 +105,7 @@ impl Combinator {
     #[must_use]
     pub fn new() -> Combinator {
         Combinator {
-            set: Default::default(),
+            set: HashSet::default(),
         }
     }
 
@@ -165,7 +165,7 @@ impl Generator {
     #[must_use]
     pub fn new() -> Generator {
         Generator {
-            set: Default::default(),
+            set: HashSet::default(),
         }
     }
 
@@ -225,18 +225,6 @@ impl Generator {
 /// * Methods for the `Generator` and `Combinator` structs that allow to create
 ///   the resources.
 ///
-/// ## Example
-///
-/// ```ignore
-/// define_resources!(
-///     Basic: [Oxygen, Hydrogen],
-///     Complex: [Water]
-/// );
-///
-/// define_combination_rules!(
-///    Water from Hydrogen + Oxygen,
-/// );
-/// ```
 macro_rules! define_resources {
         (Basic: [$($basic:ident),* $(,)?], Complex: [$($complex:ident),* $(,)?]) => {
 
@@ -451,7 +439,9 @@ macro_rules! define_resources {
                             ///
                             /// # Returns
                             /// * `Ok($basic)` if the resource is `$basic`.
-                            /// * `Err(String)` if the resource is of a different type.
+                            ///
+                            /// # Errors
+                            /// Returns an error if the resource is of a different type.
                             pub fn [< to_ $basic:lower >] (self) -> Result< $basic , String> {
                                 match self {
                                     BasicResource:: $basic (h) => Ok(h) ,
@@ -468,7 +458,9 @@ macro_rules! define_resources {
                         ///
                         /// # Returns
                         /// * `Ok($complex)` if the resource is `$complex`.
-                        /// * `Err(String)` if the resource is of a different type.
+                        ///
+                        /// # Errors
+                        /// Returns an error if the resource is of a different type.
                         pub fn [< to_ $complex:lower >] (self) -> Result< $complex,String> {
                             match self {
                                 GenericResource::ComplexResources(ComplexResource:: $complex(h))  => Ok(h),
@@ -484,7 +476,9 @@ macro_rules! define_resources {
                         ///
                         /// # Returns
                         /// * `Ok($basic)` if the resource is `$basic`.
-                        /// * `Err(String)` if the resource is of a different type.
+                        ///
+                        /// # Errors
+                        /// Returns an error if the resource is of a different type.
                         pub fn [< to_ $basic:lower >] (self) -> Result< $basic , String> {
                             match self {
                                 GenericResource::BasicResources(BasicResource:: $basic(h))  => Ok(h),
@@ -509,7 +503,9 @@ macro_rules! define_resources {
                     ///
                     /// # Returns
                     /// * `Ok($complex)` if the resource is `$complex`.
-                    /// * `Err(String)` if the resource is of a different type.
+                    ///
+                    /// # Errors
+                    /// Returns an error if the resource is of a different type.
                     pub fn [< to_ $complex:lower >] (self) -> Result< $complex,String> {
                         match self {
                             ComplexResource:: $complex( h) => Ok(h) ,
@@ -591,10 +587,12 @@ macro_rules! define_resources {
                          ///
                          /// # Returns
                          ///
-                         /// A `Result` indicating success or failure:
+                         /// A `Result` indicating success:
                          /// * `Ok([<$basic>])`: The resource was successfully created.
-                         /// * `Err(String)`: An error occurred, either because there is no recipe
-                         ///   for this resource or the `energy_cell` was not charged.
+                         ///
+                         /// # Errors
+                         ///
+                         /// Returns an error if there is no recipe for this resource or if the `energy_cell` is not charged.
                          pub fn [<make_ $basic:lower>]  (&self, energy_cell : &mut EnergyCell ) -> Result<$basic, String > {
                              let b = BasicResourceType::$basic;
                             if let Some(_f_enum)  =  &self.set.get(&b) {
@@ -619,11 +617,14 @@ macro_rules! define_resources {
                   ///
                   /// # Returns
                   ///
-                  /// A `Result` indicating success or failure:
+                  /// A `Result` indicating success:
                   /// * `Ok(BasicResource)`: The requested resource was successfully created and
                   ///   wrapped in the `BasicResource` enum.
-                  /// * `Err(String)`: An error occurred, such as the `energy_cell` not being charged
-                  ///   or a missing recipe for the requested resource.
+                  ///
+                  /// # Errors
+                  ///
+                  /// Returns an error if the `energy_cell` is not charged or if there is no recipe
+                  /// for the requested resource type.
                   pub fn try_make(&self , req :  BasicResourceType , energy_cell: &mut EnergyCell) -> Result<BasicResource, String> {
                     if !energy_cell.is_charged() {
                         return Err("The energy is not charged".to_string());
@@ -667,18 +668,6 @@ macro_rules! define_resources {
 /// * An implementation of the `try_make` method for the `Combinator` struct that
 ///   allows to create the complex resources.
 ///
-/// ## Example
-///
-/// ```ignore
-/// define_resources!(
-///   Basic: [Hydrogen, Oxygen],
-///  Complex: [Water]
-/// );
-///
-/// define_combination_rules!(
-///     Water from Hydrogen + Oxygen,
-/// );
-/// ```
 macro_rules! define_combination_rules {
         ($($result:ident from  $lhs:ident + $rhs:ident ),* $(,)?) => {
             $(
@@ -726,12 +715,12 @@ macro_rules! define_combination_rules {
                          ///
                          /// # Returns
                          ///
-                         /// A `Result` indicating success or failure:
+                         /// A `Result` indicating success:
                          /// * `Ok([<$result>])`: The complex resource was successfully created.
-                         /// * `Err((String, [$lhs], [$rhs]))`: An error occurred. The tuple contains:
-                         ///     1. An error message string (e.g., missing recipe, uncharged cell).
-                         ///     2. The original input resource `r1` (returned so it is not lost).
-                         ///     3. The original input resource `r2` (returned so it is not lost).
+                         ///
+                         /// # Errors
+                         ///
+                         /// Returns an error if there is no recipe for this resource, if the `energy_cell` is not charged, or if the energy discharge fails. The input resources are returned in the error tuple to prevent ownership loss.
                          pub fn [<make_ $result:lower>]  (&self, r1 :  $lhs  ,r2 : $rhs , energy_cell: &mut EnergyCell  ) -> Result<$result, (String, $lhs , $rhs )  > {
                              let c = ComplexResourceType::$result;
                             if let Some(_f_enum)  =  &self.set.get( &c ) {
@@ -757,15 +746,14 @@ macro_rules! define_combination_rules {
                  ///
                  /// # Returns
                  ///
-                 /// A `Result` indicating success or failure:
+                 /// A `Result` indicating success:
                  /// * `Ok(ComplexResource)`: The complex resource was successfully created.
-                 /// * `Err((String, GenericResource, GenericResource))`: An error occurred. The tuple contains:
-                 ///     1. An error message string (e.g., missing recipe, uncharged cell).
-                 ///     2. The first input resource as a `GenericResource`.
-                 ///     3. The second input resource as a `GenericResource`.
                  ///
-                 /// The input resources are returned in the error case to prevent ownership loss
-                 /// on failure.
+                 /// # Errors
+                 ///
+                 /// Returns an error if there is no recipe for the requested complex resource or if the
+                 /// energy cell discharge fails. The input resources are returned in the error tuple to
+                 /// prevent ownership loss on failure.
                  pub fn try_make(&self , req :  ComplexResourceRequest , energy_cell: &mut EnergyCell) -> Result<ComplexResource, (String, GenericResource , GenericResource )> {
                     match req {
                         $(
