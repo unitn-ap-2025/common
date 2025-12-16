@@ -21,7 +21,7 @@ use std::sync::Mutex;
 /// cross-module access within the crate.
 /// It **is not** considered stable API and must not be used by external code.
 pub(crate) mod internal {
-    use super::*;
+    use super::{lazy_static, Mutex};
 
     lazy_static! {
         /// Tracks whether a [Forge] instance has already been created.
@@ -58,11 +58,11 @@ impl Forge {
             .lock()
             .map_err(|_| "Internal error: forge state mutex poisoned".to_string())?;
 
-        if !*check {
+        if *check {
+            Err("Another generator has already been created".into())
+        } else {
             *check = true;
             Ok(Forge { _private: () })
-        } else {
-            Err("Another generator has already been created".into())
         }
     }
 
@@ -70,6 +70,7 @@ impl Forge {
     ///
     /// # Returns
     /// A freshly constructed `Asteroid` instance.
+    #[must_use] 
     pub fn generate_asteroid(&self) -> Asteroid {
         Asteroid::new()
     }
@@ -78,6 +79,7 @@ impl Forge {
     ///
     /// # Returns
     /// A freshly constructed `Sunray` instance.
+    #[must_use] 
     pub fn generate_sunray(&self) -> Sunray {
         Sunray::new()
     }

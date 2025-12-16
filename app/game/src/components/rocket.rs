@@ -15,7 +15,7 @@ impl Rocket {
     ///
     /// # Arguments
     ///
-    /// * `energy_cell` - An energy cell ([EnergyCell]) used to build the rocket.
+    /// * `energy_cell` - An energy cell ([`EnergyCell`]) used to build the rocket.
     ///
     /// # Returns
     ///
@@ -25,6 +25,6 @@ impl Rocket {
     ///
     /// Returns an error if `energy_cell` is not charged.
     pub(crate) fn new(energy_cell: &mut EnergyCell) -> Result<Rocket, String> {
-        energy_cell.discharge().map(|_| Rocket { _private: () })
+        energy_cell.discharge().map(|()| Rocket { _private: () })
     }
 }
