@@ -1,6 +1,3 @@
-# AP Project Sequence Diagrams
-
-
 ## Planet Initialization
 
 ```mermaid
