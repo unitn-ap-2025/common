@@ -9,9 +9,12 @@ use crate::components::resource::{
     GenericResource,
 };
 use std::collections::HashSet;
+use enum_as_inner::EnumAsInner;
+use strum_macros::EnumDiscriminants;
 
 /// This enum describes all possible messages from an Explorer to a Planet.
-#[derive(Debug)]
+#[derive(Debug, EnumAsInner, EnumDiscriminants)]
+#[strum_discriminants(name(ExplorerToPlanetKind))]
 pub enum ExplorerToPlanet {
     /// This variant is used to ask the Planet for the available [BasicResourceType]
     /// **Expected Response**: [PlanetToExplorer::SupportedResourceResponse]
@@ -69,7 +72,8 @@ impl ExplorerToPlanet {
 }
 
 /// This enum describes all possible messages from a Planet to an Explorer.
-#[derive(Debug)]
+#[derive(Debug, EnumAsInner, EnumDiscriminants)]
+#[strum_discriminants(name(PlanetToExplorerKind))]
 pub enum PlanetToExplorer {
     /// This variant is used to send the available [BasicResourceType] list to the Explorer
     /// **Response To**: [ExplorerToPlanet::SupportedResourceRequest]
