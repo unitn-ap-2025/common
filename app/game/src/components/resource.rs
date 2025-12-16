@@ -56,7 +56,7 @@ pub enum GenericResource {
 
 impl GenericResource {
     /// Returns the [`ResourceType`] of the `GenericResource`.
-    #[must_use] 
+    #[must_use]
     pub fn get_type(&self) -> ResourceType {
         match self {
             GenericResource::BasicResources(basic) => ResourceType::Basic(basic.get_type()),
@@ -102,7 +102,7 @@ impl Default for Combinator {
 
 impl Combinator {
     /// Creates a new `Combinator` with no recipes.
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Combinator {
         Combinator {
             set: Default::default(),
@@ -111,7 +111,7 @@ impl Combinator {
 
     /// Returns `true` if the `Combinator` contains a recipe for the specified
     /// [`ComplexResourceType`].
-    #[must_use] 
+    #[must_use]
     pub fn contains(&self, complex: ComplexResourceType) -> bool {
         matches!(&self.set.get(&complex), Some(_f))
     }
@@ -132,7 +132,7 @@ impl Combinator {
     }
 
     /// Returns a `HashSet` of all the recipes available in the `Combinator`.
-    #[must_use] 
+    #[must_use]
     pub fn all_available_recipes(&self) -> HashSet<ComplexResourceType> {
         self.set.iter().copied().collect()
     }
@@ -162,7 +162,7 @@ impl Default for Generator {
 
 impl Generator {
     /// Creates a new `Generator` with no recipes.
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Generator {
         Generator {
             set: Default::default(),
@@ -171,7 +171,7 @@ impl Generator {
 
     /// Returns `true` if the `Generator` contains a recipe for the specified
     /// [`BasicResourceType`].
-    #[must_use] 
+    #[must_use]
     pub fn contains(&self, basic: BasicResourceType) -> bool {
         matches!(&self.set.get(&basic), Some(_f))
     }
@@ -192,7 +192,7 @@ impl Generator {
     }
 
     /// Returns a `HashSet` of all the recipes available in the `Generator`.
-    #[must_use] 
+    #[must_use]
     pub fn all_available_recipes(&self) -> HashSet<BasicResourceType> {
         self.set.iter().copied().collect()
     }

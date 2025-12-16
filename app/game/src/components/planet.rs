@@ -231,7 +231,7 @@ impl PlanetType {
 
     /// Returns a tuple with the constraints associated to the planet type,
     /// as described in the project specifications.
-    #[must_use] 
+    #[must_use]
     pub fn constraints(&self) -> PlanetConstraints {
         match self {
             PlanetType::A => PlanetConstraints {
@@ -278,7 +278,7 @@ pub struct PlanetState {
 
 impl PlanetState {
     /// Returns the planet id.
-    #[must_use] 
+    #[must_use]
     pub fn id(&self) -> u32 {
         self.id
     }
@@ -291,7 +291,7 @@ impl PlanetState {
     /// # Panics
     /// This method will panic if the index `i` is out of bounds.
     /// Always check the number of energy cells available with [`PlanetState::cells_count`].
-    #[must_use] 
+    #[must_use]
     pub fn cell(&self, i: usize) -> &EnergyCell {
         &self.energy_cells[i]
     }
@@ -311,7 +311,7 @@ impl PlanetState {
     /// Returns the number of energy cells owned by
     /// the planet. This is the actual size of the internal
     /// vec containing the cells.
-    #[must_use] 
+    #[must_use]
     pub fn cells_count(&self) -> usize {
         self.energy_cells.len()
     }
@@ -348,18 +348,21 @@ impl PlanetState {
     /// Returns a tuple containing a *mutable* borrow of the first full (charged) cell
     /// and its index, or `None` if there isn't any.
     pub fn full_cell(&mut self) -> Option<(&mut EnergyCell, usize)> {
-        let idx = self.energy_cells.iter().position(super::energy_cell::EnergyCell::is_charged);
+        let idx = self
+            .energy_cells
+            .iter()
+            .position(super::energy_cell::EnergyCell::is_charged);
         idx.map(|i| (&mut self.energy_cells[i], i))
     }
 
     /// Returns `true` if the planet can have a rocket.
-    #[must_use] 
+    #[must_use]
     pub fn can_have_rocket(&self) -> bool {
         self.can_have_rocket
     }
 
     /// Returns `true` if the planet has a rocket built and ready to launch.
-    #[must_use] 
+    #[must_use]
     pub fn has_rocket(&self) -> bool {
         self.rocket.is_some()
     }
@@ -396,7 +399,7 @@ impl PlanetState {
     }
 
     /// Returns a *dummy* clone of this state.
-    #[must_use] 
+    #[must_use]
     pub fn to_dummy(&self) -> DummyPlanetState {
         DummyPlanetState {
             energy_cells: self
@@ -721,31 +724,31 @@ impl Planet {
     }
 
     /// Returns the planet id.
-    #[must_use] 
+    #[must_use]
     pub fn id(&self) -> u32 {
         self.state.id
     }
 
     /// Returns the planet type.
-    #[must_use] 
+    #[must_use]
     pub fn planet_type(&self) -> PlanetType {
         self.planet_type
     }
 
     /// Returns an immutable borrow of planet's internal state.
-    #[must_use] 
+    #[must_use]
     pub fn state(&self) -> &PlanetState {
         &self.state
     }
 
     /// Returns an immutable borrow of the planet generator.
-    #[must_use] 
+    #[must_use]
     pub fn generator(&self) -> &Generator {
         &self.generator
     }
 
     /// Returns an immutable borrow of the planet combinator.
-    #[must_use] 
+    #[must_use]
     pub fn combinator(&self) -> &Combinator {
         &self.combinator
     }

@@ -21,7 +21,7 @@ use std::sync::Mutex;
 /// cross-module access within the crate.
 /// It **is not** considered stable API and must not be used by external code.
 pub(crate) mod internal {
-    use super::{lazy_static, Mutex};
+    use super::{Mutex, lazy_static};
 
     lazy_static! {
         /// Tracks whether a [Forge] instance has already been created.
@@ -70,7 +70,7 @@ impl Forge {
     ///
     /// # Returns
     /// A freshly constructed `Asteroid` instance.
-    #[must_use] 
+    #[must_use]
     pub fn generate_asteroid(&self) -> Asteroid {
         Asteroid::new()
     }
@@ -79,7 +79,7 @@ impl Forge {
     ///
     /// # Returns
     /// A freshly constructed `Sunray` instance.
-    #[must_use] 
+    #[must_use]
     pub fn generate_sunray(&self) -> Sunray {
         Sunray::new()
     }
