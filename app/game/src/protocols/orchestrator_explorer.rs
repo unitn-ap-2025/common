@@ -17,7 +17,7 @@ use crate::utils::ID;
 #[strum_discriminants(name(OrchestratorToExplorerKind))]
 pub enum OrchestratorToExplorer {
     /// This variant is used to start an Explorer AI
-    /// **Expected Response**: [ExplorerToOrchestrator::StopExplorerAIResult]
+    /// **Expected Response**: [ExplorerToOrchestrator::StartExplorerAIResult]
     /// **Use Case**: Starting the Explorer AI at game start
     StartExplorerAI,
     /// This variant is used to reset the Explorer AI and restart it if it is in manual mode
@@ -155,27 +155,6 @@ pub enum ExplorerToOrchestrator<T> {
         generated: Result<(), String>,
     },
     /// This message is for passing around the bag content and has been implemented with a generic type to let the group the freedom to implement the methods on it
-    ///
-    /// ## Example
-    /// ```ignore
-    /// use std::collections::HashMap;
-    /// use common_game::components::resource::{ComplexResourceType, BasicResourceType};
-    /// use common_game::protocols::messages::ExplorerToOrchestrator;
-    ///
-    /// pub struct DummyBag {
-    ///     pub complex: HashMap<ComplexResourceType, ID>,
-    ///     pub basic: HashMap<BasicResourceType, ID>,
-    /// }
-    ///
-    /// let message = ExplorerToOrchestrator::BagContentResponse {
-    ///     explorer_id: 1,
-    ///     bag_content: DummyBag {
-    ///         complex: HashMap::new(),
-    ///         basic: HashMap::new(),
-    ///     }
-    /// };
-    /// ```
-    ///
     /// **Response To**: [OrchestratorToExplorer::BagContentRequest]
     BagContentResponse {
         ///The ID of the explorer sending the message
