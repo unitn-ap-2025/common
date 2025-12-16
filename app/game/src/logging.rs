@@ -92,6 +92,7 @@ impl LogEvent {
         }
     }
 
+    #[must_use]
     pub fn id_from_str(s: &str) -> u64 {
         let mut hasher = DefaultHasher::new();
         s.hash(&mut hasher);
@@ -103,14 +104,14 @@ impl LogEvent {
     /// If no logger is initialized by the final binary,
     /// this will just be a no-op (which is fine for a library).
     pub fn emit(&self) {
-        use Channel::*;
+        use Channel::{Debug, Error, Info, Trace, Warning};
 
         match self.channel {
-            Error => log::error!("{:?}", self),
-            Warning => log::warn!("{:?}", self),
-            Info => log::info!("{:?}", self),
-            Debug => log::debug!("{:?}", self),
-            Trace => log::trace!("{:?}", self),
+            Error => log::error!("{self:?}"),
+            Warning => log::warn!("{self:?}"),
+            Info => log::info!("{self:?}"),
+            Debug => log::debug!("{self:?}"),
+            Trace => log::trace!("{self:?}"),
         }
     }
 }

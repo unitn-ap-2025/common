@@ -2,13 +2,13 @@
 //! This module provides common definitions for planets and their associated types
 //! that will be used by a group to construct its own planet.
 //! The [Planet] struct is the **main component**: an instance of it represents the
-//! actual planet and contains all the logic and state (see [PlanetState]) needed to work as one, in fact
+//! actual planet and contains all the logic and state (see [`PlanetState`]) needed to work as one, in fact
 //! this is what the orchestrator will interact with.
 //!
-//! You can instantiate a new planet by calling the [Planet::new] constructor method and passing
+//! You can instantiate a new planet by calling the [`Planet::new`] constructor method and passing
 //! valid construction parameters to it (look into its documentation to learn more).
 //!
-//! One of the construction parameters of a planet is a group-defined struct that implements the [PlanetAI] trait,
+//! One of the construction parameters is a planet is a group-defined struct that implements the [`PlanetAI`] trait,
 //! which defines several methods for handling messages coming from the orchestrator and the explorers. This is
 //! the core of each group's planet implementation, as it defines the planet *behavior*, that is
 //! how a planet "reacts" to the possible events or requests.
@@ -118,7 +118,7 @@ use std::slice::{Iter, IterMut};
 /// `state` parameter, which is passed to the methods as a mutable borrow.
 /// The [Generator] and [Combinator] of the planet are also passed as parameters.
 pub trait PlanetAI: Send {
-    /// This handler will be invoked when a [OrchestratorToPlanet::Sunray]
+    /// This handler will be invoked when a [`OrchestratorToPlanet::Sunray`]
     /// message is received. The `sunray` parameter is the actual [Sunray] struct
     /// used to charged energy cells.
     fn handle_sunray(
@@ -129,7 +129,7 @@ pub trait PlanetAI: Send {
         sunray: Sunray,
     );
 
-    /// This handler will be invoked when a [OrchestratorToPlanet::Asteroid]
+    /// This handler will be invoked when a [`OrchestratorToPlanet::Asteroid`]
     /// message is received. It's important to handle *Asteroid* messages
     /// correctly, as this will the determine the planet survival.
     ///
@@ -143,11 +143,11 @@ pub trait PlanetAI: Send {
         combinator: &Combinator,
     ) -> Option<Rocket>;
 
-    /// This handler will be invoked when a [OrchestratorToPlanet::InternalStateRequest]
+    /// This handler will be invoked when a [`OrchestratorToPlanet::InternalStateRequest`]
     /// message is received.
     ///
     /// # Returns
-    /// A [DummyPlanetState] instance that *should* represent
+    /// A [`DummyPlanetState`] instance that *should* represent
     /// the current state of the planet.
     fn handle_internal_state_req(
         &mut self,
@@ -157,7 +157,7 @@ pub trait PlanetAI: Send {
     ) -> DummyPlanetState;
 
     /// Handler for **all** messages received by explorers (receiving
-    /// end of the [ExplorerToPlanet] channel). The id of the sender explorer
+    /// end of the [`ExplorerToPlanet`] channel). The id of the sender explorer
     /// is part of the `msg` struct.
     ///
     /// # Returns
@@ -195,14 +195,14 @@ pub trait PlanetAI: Send {
     ) {
     }
 
-    /// This method will be invoked when a [OrchestratorToPlanet::StartPlanetAI]
+    /// This method will be invoked when a [`OrchestratorToPlanet::StartPlanetAI`]
     /// is received, but **only if** the planet is currently in a *stopped* state.
     ///
     /// Start messages received when planet is already running are **ignored**.
     #[allow(unused_variables)]
     fn on_start(&mut self, state: &PlanetState, generator: &Generator, combinator: &Combinator) {}
 
-    /// This method will be invoked when a [OrchestratorToPlanet::StopPlanetAI]
+    /// This method will be invoked when a [`OrchestratorToPlanet::StopPlanetAI`]
     /// is received, but **only if** the planet is currently in a *running* state.
     ///
     /// Stop messages received when planet is already stopped are **ignored**.
@@ -210,7 +210,7 @@ pub trait PlanetAI: Send {
     fn on_stop(&mut self, state: &PlanetState, generator: &Generator, combinator: &Combinator) {}
 }
 
-/// Contains planet rules constraints (see [PlanetType]).
+/// Contains planet rules constraints (see [`PlanetType`]).
 pub struct PlanetConstraints {
     n_energy_cells: usize,
     unbounded_gen_rules: bool,
@@ -235,6 +235,7 @@ impl PlanetType {
 
     /// Returns the constraints associated to the planet type,
     /// as described in the project specifications.
+    #[must_use]
     pub fn constraints(&self) -> PlanetConstraints {
         match self {
             PlanetType::A => PlanetConstraints {
@@ -277,30 +278,32 @@ pub struct PlanetState {
 
 impl PlanetState {
     /// Returns the planet id.
+    #[must_use]
     pub fn id(&self) -> u32 {
         self.id
     }
 
-    /// Indexed getter accessor for the [EnergyCell] vec.
+    /// Indexed getter accessor for the [`EnergyCell`] vec.
     ///
     /// # Returns
     /// An immutable borrow of the *i-th* energy cell.
     ///
     /// # Panics
     /// This method will panic if the index `i` is out of bounds.
-    /// Always check the number of energy cells available with [PlanetState::cells_count].
+    /// Always check the number of energy cells available with [`PlanetState::cells_count`].
+    #[must_use]
     pub fn cell(&self, i: usize) -> &EnergyCell {
         &self.energy_cells[i]
     }
 
-    /// Indexed *mutable* getter accessor for the [EnergyCell] vec.
+    /// Indexed *mutable* getter accessor for the [`EnergyCell`] vec.
     ///
     /// # Returns
     /// An mutable borrow of the *i-th* energy cell.
     ///
     /// # Panics
     /// This method will panic if the index `i` is out of bounds.
-    /// Always check the number of energy cells available with [PlanetState::cells_count].
+    /// Always check the number of energy cells available with [`PlanetState::cells_count`].
     pub fn cell_mut(&mut self, i: usize) -> &mut EnergyCell {
         &mut self.energy_cells[i]
     }
@@ -308,6 +311,7 @@ impl PlanetState {
     /// Returns the number of energy cells owned by
     /// the planet. This is the actual size of the internal
     /// vec containing the cells.
+    #[must_use]
     pub fn cells_count(&self) -> usize {
         self.energy_cells.len()
     }
@@ -344,16 +348,21 @@ impl PlanetState {
     /// Returns a tuple containing a *mutable* borrow of the first full (charged) cell
     /// and its index, or `None` if there isn't any.
     pub fn full_cell(&mut self) -> Option<(&mut EnergyCell, usize)> {
-        let idx = self.energy_cells.iter().position(|cell| cell.is_charged());
+        let idx = self
+            .energy_cells
+            .iter()
+            .position(super::energy_cell::EnergyCell::is_charged);
         idx.map(|i| (&mut self.energy_cells[i], i))
     }
 
     /// Returns `true` if the planet can have a rocket.
+    #[must_use]
     pub fn can_have_rocket(&self) -> bool {
         self.can_have_rocket
     }
 
     /// Returns `true` if the planet has a rocket built and ready to launch.
+    #[must_use]
     pub fn has_rocket(&self) -> bool {
         self.rocket.is_some()
     }
@@ -364,12 +373,12 @@ impl PlanetState {
         self.rocket.take()
     }
 
-    /// Constructs a rocket using the *i-th* [EnergyCell] of the planet and stores it
+    /// Constructs a rocket using the *i-th* [`EnergyCell`] of the planet and stores it
     /// inside the planet, taking ownership of it.
     ///
     /// # Panics
     /// This method will panic if the index `i` is out of bounds.
-    /// Always check the number of energy cells available with [PlanetState::cells_count].
+    /// Always check the number of energy cells available with [`PlanetState::cells_count`].
     ///
     /// # Errors
     /// Returns an error if:
@@ -390,12 +399,13 @@ impl PlanetState {
     }
 
     /// Returns a *dummy* clone of this state.
+    #[must_use]
     pub fn to_dummy(&self) -> DummyPlanetState {
         DummyPlanetState {
             energy_cells: self
                 .energy_cells
                 .iter()
-                .map(|cell| cell.is_charged())
+                .map(super::energy_cell::EnergyCell::is_charged)
                 .collect(),
             charged_cells_count: self
                 .energy_cells
@@ -408,9 +418,9 @@ impl PlanetState {
 }
 
 /// This is a dummy struct containing an overview of the internal state of a planet.
-/// Use [PlanetState::to_dummy] to construct one.
+/// Use [`PlanetState::to_dummy`] to construct one.
 ///
-/// Used in [PlanetToOrchestrator::InternalStateResponse].
+/// Used in [`PlanetToOrchestrator::InternalStateResponse`].
 #[derive(Debug, Clone)]
 pub struct DummyPlanetState {
     pub energy_cells: Vec<bool>,
@@ -419,7 +429,7 @@ pub struct DummyPlanetState {
 }
 
 /// Main, top-level planet definition. This type is built on top of
-/// [PlanetState], [PlanetType] and [PlanetAI], through composition.
+/// [`PlanetState`], [`PlanetType`] and [`PlanetAI`], through composition.
 ///
 /// It needs to be constructed by each group as it represents the actual planet
 /// and contains the base logic that runs the AI. Also, this is what should be
@@ -450,12 +460,12 @@ impl Planet {
     /// # Arguments
     /// - `id` - The identifier to assign to the planet.
     /// - `planet_type` - Type of the planet. Constraints the rules of the planet.
-    /// - `ai` - A group-defined struct implementing the [PlanetAI] trait.
-    /// - `gen_rules` - A vec of [BasicResourceType] containing the basic resources the planet will be able to generate.
-    /// - `comb_rules` - A vec of [ComplexResourceType] containing the complex resources the planet will be able to make.
+    /// - `ai` - A group-defined struct implementing the [`PlanetAI`] trait.
+    /// - `gen_rules` - A vec of [`BasicResourceType`] containing the basic resources the planet will be able to generate.
+    /// - `comb_rules` - A vec of [`ComplexResourceType`] containing the complex resources the planet will be able to make.
     /// - `orchestrator_channels` - A pair containing the receiver and sender half
-    ///   of the channels [OrchestratorToPlanet] and [PlanetToOrchestrator].
-    /// - `explorers_receiver` - The receiver half of the [ExplorerToPlanet] channel
+    ///   of the channels [`OrchestratorToPlanet`] and [`PlanetToOrchestrator`].
+    /// - `explorers_receiver` - The receiver half of the [`ExplorerToPlanet`] channel
     ///   where all explorers send messages to this planet (when they're visiting it).
     pub fn new(
         id: u32,
@@ -478,13 +488,11 @@ impl Planet {
             Err("gen_rules is empty".to_string())
         } else if !unbounded_gen_rules && gen_rules.len() > 1 {
             Err(format!(
-                "Too many generation rules (Planet type {:?} is limited to 1)",
-                planet_type
+                "Too many generation rules (Planet type {planet_type:?} is limited to 1)"
             ))
         } else if comb_rules.len() > n_comb_rules {
             Err(format!(
-                "Too many combination rules (Planet type {:?} is limited to {})",
-                planet_type, n_comb_rules
+                "Too many combination rules (Planet type {planet_type:?} is limited to {n_comb_rules})"
             ))
         } else {
             let mut generator = Generator::new();
@@ -517,9 +525,9 @@ impl Planet {
         }
     }
 
-    /// Starts the planet in a *stopped* state, waiting for a [OrchestratorToPlanet::StartPlanetAI] message,
-    /// then invokes [PlanetAI::on_start] and runs the main message polling loop.
-    /// See [PlanetAI] docs to know more about when message handlers are invoked and how the planet reacts
+    /// Starts the planet in a *stopped* state, waiting for a [`OrchestratorToPlanet::StartPlanetAI`] message,
+    /// then invokes [`PlanetAI::on_start`] and runs the main message polling loop.
+    /// See [`PlanetAI`] docs to know more about when message handlers are invoked and how the planet reacts
     /// to the different messages.
     ///
     /// This method is *blocking* and should be called by the orchestrator in a separate thread.
@@ -661,7 +669,7 @@ impl Planet {
                     {
                         to_explorer
                             .send(response)
-                            .map_err(|_| format!("Explorer {} disconnected.", explorer_id))?;
+                            .map_err(|_| format!("Explorer {explorer_id} disconnected."))?;
                     }
                 }
             }
@@ -699,7 +707,7 @@ impl Planet {
                             .send(PlanetToOrchestrator::Stopped {
                                 planet_id: self.id(),
                             })
-                            .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?
+                            .map_err(|_| Self::ORCH_DISCONNECT_ERR.to_string())?;
                     }
 
                     Err(_) => return Err(Self::ORCH_DISCONNECT_ERR.to_string()),
@@ -716,26 +724,31 @@ impl Planet {
     }
 
     /// Returns the planet id.
+    #[must_use]
     pub fn id(&self) -> u32 {
         self.state.id
     }
 
     /// Returns the planet type.
+    #[must_use]
     pub fn planet_type(&self) -> PlanetType {
         self.planet_type
     }
 
     /// Returns an immutable borrow of planet's internal state.
+    #[must_use]
     pub fn state(&self) -> &PlanetState {
         &self.state
     }
 
     /// Returns an immutable borrow of the planet generator.
+    #[must_use]
     pub fn generator(&self) -> &Generator {
         &self.generator
     }
 
     /// Returns an immutable borrow of the planet combinator.
+    #[must_use]
     pub fn combinator(&self) -> &Combinator {
         &self.combinator
     }
