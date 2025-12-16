@@ -8,10 +8,10 @@ use crate::components::resource::{
     BasicResource, BasicResourceType, ComplexResource, ComplexResourceRequest, ComplexResourceType,
     GenericResource,
 };
-use std::collections::HashSet;
-use enum_as_inner::EnumAsInner;
-use strum_macros::EnumDiscriminants;
 use crate::utils::ID;
+use enum_as_inner::EnumAsInner;
+use std::collections::HashSet;
+use strum_macros::EnumDiscriminants;
 
 /// This enum describes all possible messages from an Explorer to a Planet.
 #[derive(Debug, EnumAsInner, EnumDiscriminants)]

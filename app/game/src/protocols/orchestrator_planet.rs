@@ -9,10 +9,10 @@ use crate::components::planet::DummyPlanetState;
 use crate::components::rocket::Rocket;
 use crate::components::sunray::Sunray;
 use crate::protocols::planet_explorer::PlanetToExplorer;
+use crate::utils::ID;
 use crossbeam_channel::Sender;
 use enum_as_inner::EnumAsInner;
 use strum_macros::EnumDiscriminants;
-use crate::utils::ID;
 
 /// This enum describes all possible messages from the Orchestrator to a Planet
 #[derive(Debug, EnumAsInner, EnumDiscriminants)]

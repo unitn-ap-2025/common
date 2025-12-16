@@ -22,7 +22,8 @@
 //! use common_game::components::resource::{Combinator, Generator};
 //! use common_game::components::rocket::Rocket;
 //! use common_game::components::sunray::Sunray;
-//! use common_game::protocols::messages;
+//! use common_game::protocols::planet_explorer;
+//! use common_game::protocols::orchestrator_planet;
 //!
 //! // Group-defined AI struct
 //! struct AI { /* your AI state here */ };
@@ -53,8 +54,8 @@
 //!         state: &mut PlanetState,
 //!         generator: &Generator,
 //!         combinator: &Combinator,
-//!         msg: messages::ExplorerToPlanet
-//!     ) -> Option<messages::PlanetToExplorer> {
+//!         msg: ExplorerToPlanet
+//!     ) -> Option<planet_explorer::PlanetToExplorer> {
 //!         // your handler code here...
 //!         None
 //!     }
@@ -73,9 +74,9 @@
 //! // This is the group's "export" function. It will be called by
 //! // the orchestrator to spawn your planet.
 //! pub fn create_planet(
-//!     rx_orchestrator: Receiver<messages::OrchestratorToPlanet>,
-//!     tx_orchestrator: Sender<messages::PlanetToOrchestrator>,
-//!     rx_explorer: Receiver<messages::ExplorerToPlanet>,
+//!     rx_orchestrator: Receiver<orchestrator_planet::OrchestratorToPlanet>,
+//!     tx_orchestrator: Sender<orchestrator_planet::PlanetToOrchestrator>,
+//!     rx_explorer: Receiver<planet_explorer::ExplorerToPlanet>,
 //! ) -> Planet {
 //!     let id = 1;
 //!     let ai = AI {};
@@ -101,10 +102,10 @@ use crate::components::rocket::Rocket;
 use crate::components::sunray::Sunray;
 use crate::protocols::orchestrator_planet::{OrchestratorToPlanet, PlanetToOrchestrator};
 use crate::protocols::planet_explorer::{ExplorerToPlanet, PlanetToExplorer};
+use crate::utils::ID;
 use crossbeam_channel::{Receiver, Sender, select_biased};
 use std::collections::HashMap;
 use std::slice::{Iter, IterMut};
-use crate::utils::ID;
 
 /// The trait that defines the behavior of a planet.
 ///
