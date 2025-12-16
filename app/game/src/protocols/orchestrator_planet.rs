@@ -10,9 +10,12 @@ use crate::components::rocket::Rocket;
 use crate::components::sunray::Sunray;
 use crate::protocols::planet_explorer::PlanetToExplorer;
 use crossbeam_channel::Sender;
+use enum_as_inner::EnumAsInner;
+use strum_macros::EnumDiscriminants;
 
 /// This enum describes all possible messages from the Orchestrator to a Planet
-#[derive(Debug)]
+#[derive(Debug, EnumAsInner, EnumDiscriminants)]
+#[strum_discriminants(name(OrchestratorToPlanetKind))]
 pub enum OrchestratorToPlanet {
     /// This variant is used to send a [Sunray] to a planet
     /// **Expected Response**: [PlanetToOrchestrator::SunrayAck]
@@ -58,7 +61,8 @@ pub enum OrchestratorToPlanet {
 }
 
 /// This enum describes all possible messages from a Planet to the Orchestrator
-#[derive(Debug)]
+#[derive(Debug, EnumAsInner, EnumDiscriminants)]
+#[strum_discriminants(name(PlanetToOrchestratorKind))]
 pub enum PlanetToOrchestrator {
     /// This variant is used to acknowledge the obtained [Sunray]
     /// Response to [OrchestratorToPlanet::Sunray]
