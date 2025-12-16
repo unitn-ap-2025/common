@@ -37,7 +37,6 @@ pub enum Channel {
     Trace,
 }
 
-
 /// High-level event categories.
 #[derive(Debug, Clone)]
 pub enum EventType {
