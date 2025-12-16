@@ -518,7 +518,7 @@ impl Planet {
     }
 
     /// Starts the planet in a *stopped* state, waiting for a [OrchestratorToPlanet::StartPlanetAI] message,
-    /// then invokes [PlanetAI::start] and runs the main message polling loop.
+    /// then invokes [PlanetAI::on_start] and runs the main message polling loop.
     /// See [PlanetAI] docs to know more about when message handlers are invoked and how the planet reacts
     /// to the different messages.
     ///
