@@ -24,7 +24,7 @@
 //! use common_game::components::sunray::Sunray;
 //! use common_game::protocols::planet_explorer;
 //! use common_game::protocols::orchestrator_planet;
-//!
+//! use common_game::protocols::planet_explorer::ExplorerToPlanet;
 //! // Group-defined AI struct
 //! struct AI { /* your AI state here */ };
 //!
