@@ -26,7 +26,7 @@ pub enum Channel {
     /// Unexpected behavior that doesn’t stop the game/lead to a panic
     Warning,
     /// Important events, to be emitted by the Orchestrator once the last ack message in the conversation is recieved.
-    /// The events this level should be used with are:
+    /// The events this level should be used for are:
     /// - Planet creation/destruction
     /// - Planet/Explorer start/stop
     /// - Explorer movement/death
