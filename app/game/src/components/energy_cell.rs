@@ -1,6 +1,6 @@
-//! EnergyCell module
+//! `EnergyCell` module
 //!
-//! This module defines the [EnergyCell] type, a simple component that can store
+//! This module defines the [`EnergyCell`] type, a simple component that can store
 //! energy after being exposed to a [Sunray]. It supports charging, discharging,
 //! and checking whether the cell currently holds energy.
 
@@ -30,6 +30,7 @@ impl Debug for EnergyCell {
 #[allow(dead_code)]
 impl EnergyCell {
     /// Constructs a new `EnergyCell` that starts uncharged.
+    #[must_use]
     pub fn new() -> Self {
         Self { charge: false }
     }
@@ -53,7 +54,10 @@ impl EnergyCell {
     /// # Returns
     ///
     /// - `Ok(())` if the cell was charged and is now discharged.
-    /// - `Err(String)` if the cell was already empty.
+    ///
+    /// # Errors
+    ///
+    /// - `Err(String)` if the cell was not charged.
     pub fn discharge(&mut self) -> Result<(), String> {
         if self.charge {
             self.charge = false;
@@ -64,6 +68,7 @@ impl EnergyCell {
     }
 
     /// Returns `true` if the cell currently holds a charge, false otherwise
+    #[must_use]
     pub fn is_charged(&self) -> bool {
         self.charge
     }
@@ -71,7 +76,7 @@ impl EnergyCell {
 
 #[cfg(test)]
 mod tests {
-    //! Unit tests for the [EnergyCell] type.
+    //! Unit tests for the [`EnergyCell`] type.
     //!
     //! These tests validate the expected behavior of construction, charging,
     //! discharging, and error handling.

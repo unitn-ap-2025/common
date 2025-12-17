@@ -17,22 +17,22 @@ use strum_macros::EnumDiscriminants;
 #[derive(Debug, EnumAsInner, EnumDiscriminants)]
 #[strum_discriminants(name(ExplorerToPlanetKind))]
 pub enum ExplorerToPlanet {
-    /// This variant is used to ask the Planet for the available [BasicResourceType]
-    /// **Expected Response**: [PlanetToExplorer::SupportedResourceResponse]
+    /// This variant is used to ask the Planet for the available [`BasicResourceType`]
+    /// **Expected Response**: [`PlanetToExplorer::SupportedResourceResponse`]
     /// **Use Case**: Asking Available Basic Resources
     SupportedResourceRequest {
         ///The ID of the Explorer sending the message
         explorer_id: ID,
     },
-    /// This variant is used to ask the Planet for the available [ComplexResourceType]
-    /// **Expected Response**: [PlanetToExplorer::SupportedCombinationResponse]
+    /// This variant is used to ask the Planet for the available [`ComplexResourceType`]
+    /// **Expected Response**: [`PlanetToExplorer::SupportedCombinationResponse`]
     /// **Use Case**: Asking Available Complex Resources
     SupportedCombinationRequest {
         ///The ID of the Explorer sending the message
         explorer_id: ID,
     },
-    /// This variant is used to ask the Planet to generate a [BasicResource]
-    /// **Expected Response**: [PlanetToExplorer::GenerateResourceResponse]
+    /// This variant is used to ask the Planet to generate a [`BasicResource`]
+    /// **Expected Response**: [`PlanetToExplorer::GenerateResourceResponse`]
     /// **Use Case**: Asking to craft a Basic Resource
     GenerateResourceRequest {
         ///The ID of the Explorer sending the message
@@ -40,8 +40,8 @@ pub enum ExplorerToPlanet {
         ///The basic resource to be generated
         resource: BasicResourceType,
     },
-    /// This variant is used to ask the Planet to generate a [ComplexResource] using the [ComplexResourceRequest]
-    /// **Expected Response**: [PlanetToExplorer::CombineResourceResponse]
+    /// This variant is used to ask the Planet to generate a [`ComplexResource`] using the [`ComplexResourceRequest`]
+    /// **Expected Response**: [`PlanetToExplorer::CombineResourceResponse`]
     /// **Use Case**: Asking to craft a Complex Resource
     CombineResourceRequest {
         ///The ID of the Explorer sending the message
@@ -49,8 +49,8 @@ pub enum ExplorerToPlanet {
         ///The struct containing the complex resource to generate and the resources to be combined for the crafting to take place
         msg: ComplexResourceRequest,
     },
-    /// This variant is used to ask the Planet for the available charged energy_cells number
-    /// **Expected Response**: [PlanetToExplorer::AvailableEnergyCellResponse]
+    /// This variant is used to ask the Planet for the available charged `energy_cells` number
+    /// **Expected Response**: [`PlanetToExplorer::AvailableEnergyCellResponse`]
     /// **Use Case**: Asking the number of charged cells available
     AvailableEnergyCellRequest {
         ///The ID of the Explorer sending the message
@@ -61,13 +61,14 @@ pub enum ExplorerToPlanet {
 impl ExplorerToPlanet {
     /// Helper method to extract the `explorer_id` field from any message variant
     /// without needing to match a specific one.
+    #[must_use]
     pub fn explorer_id(&self) -> ID {
         match self {
-            ExplorerToPlanet::SupportedResourceRequest { explorer_id, .. } => *explorer_id,
-            ExplorerToPlanet::SupportedCombinationRequest { explorer_id, .. } => *explorer_id,
-            ExplorerToPlanet::GenerateResourceRequest { explorer_id, .. } => *explorer_id,
-            ExplorerToPlanet::CombineResourceRequest { explorer_id, .. } => *explorer_id,
-            ExplorerToPlanet::AvailableEnergyCellRequest { explorer_id, .. } => *explorer_id,
+            ExplorerToPlanet::SupportedResourceRequest { explorer_id, .. }
+            | ExplorerToPlanet::SupportedCombinationRequest { explorer_id, .. }
+            | ExplorerToPlanet::GenerateResourceRequest { explorer_id, .. }
+            | ExplorerToPlanet::CombineResourceRequest { explorer_id, .. }
+            | ExplorerToPlanet::AvailableEnergyCellRequest { explorer_id, .. } => *explorer_id,
         }
     }
 }
@@ -76,27 +77,27 @@ impl ExplorerToPlanet {
 #[derive(Debug, EnumAsInner, EnumDiscriminants)]
 #[strum_discriminants(name(PlanetToExplorerKind))]
 pub enum PlanetToExplorer {
-    /// This variant is used to send the available [BasicResourceType] list to the Explorer
-    /// **Response To**: [ExplorerToPlanet::SupportedResourceRequest]
+    /// This variant is used to send the available [`BasicResourceType`] list to the Explorer
+    /// **Response To**: [`ExplorerToPlanet::SupportedResourceRequest`]
     SupportedResourceResponse {
-        ///The list of available [BasicResourceType]
+        ///The list of available [`BasicResourceType`]
         resource_list: HashSet<BasicResourceType>,
     },
-    /// This variant is used to send the available [ComplexResourceType] list to the Explorer
-    /// **Response To**: [ExplorerToPlanet::SupportedCombinationRequest]
+    /// This variant is used to send the available [`ComplexResourceType`] list to the Explorer
+    /// **Response To**: [`ExplorerToPlanet::SupportedCombinationRequest`]
     SupportedCombinationResponse {
         combination_list: HashSet<ComplexResourceType>,
     },
     /// This variant is used to send the generated Basic Resource
-    /// **Response To**: [ExplorerToPlanet::GenerateResourceRequest]
+    /// **Response To**: [`ExplorerToPlanet::GenerateResourceRequest`]
     GenerateResourceResponse {
         ///The optional Basic Resource generated:
         /// [Some(BasicResource)] if resource has been crafted correctly
         /// [None] if some error occurred
         resource: Option<BasicResource>,
     },
-    /// This variant is used to send the [ComplexResource] generated
-    /// **Response To**: [ExplorerToPlanet::CombineResourceRequest]
+    /// This variant is used to send the [`ComplexResource`] generated
+    /// **Response To**: [`ExplorerToPlanet::CombineResourceRequest`]
     CombineResourceResponse {
         ///The complex basic resource generated:
         ///[Ok(ComplexResource)] if complex resource has been crafted correctly
@@ -105,7 +106,7 @@ pub enum PlanetToExplorer {
         complex_response: Result<ComplexResource, (String, GenericResource, GenericResource)>,
     },
     /// This variant is used to send the number of available energy cells to the Explorer
-    /// **Response To**: [ExplorerToPlanet::AvailableEnergyCellRequest]
+    /// **Response To**: [`ExplorerToPlanet::AvailableEnergyCellRequest`]
     AvailableEnergyCellResponse {
         ///The number of charged cells available
         available_cells: ID,

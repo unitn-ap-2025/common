@@ -6,6 +6,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use std::fmt;
 
+use crate::utils::ID;
+
 /// Who is sending / receiving this event.
 #[derive(Debug, Clone)]
 pub enum ActorType {
@@ -17,13 +19,23 @@ pub enum ActorType {
     SelfActor,
 }
 
-/// Log level / channel.
+/// Provides standardiezd log levels for all implementers to use
+/// Note: "event" here means a series of messages with a specific effect
 #[derive(Debug, Clone)]
 pub enum Channel {
+    /// Anything that leads to a panic
     Error,
+    /// Unexpected behavior that doesn’t stop the game/lead to a panic
     Warning,
+    /// Important events, to be emitted by the Orchestrator once the last ack message in the conversation is recieved.
+    /// The events this level should be used for are:
+    /// - Planet creation/destruction
+    /// - Planet/Explorer start/stop
+    /// - Explorer movement/death
     Info,
+    /// All other events that are not covered by [`Info`]
     Debug,
+    /// All messages
     Trace,
 }
 
@@ -54,11 +66,11 @@ pub type Payload = BTreeMap<String, String>;
 
 #[derive(Debug, Clone)]
 pub struct LogEvent {
-    pub timestamp_unix: i64,
+    pub timestamp_unix: u64,
     pub sender_type: ActorType,
-    pub sender_id: u64,
+    pub sender_id: ID,
     pub receiver_type: ActorType,
-    pub receiver_id: String,
+    pub receiver_id: ID,
     pub event_type: EventType,
     pub channel: Channel,
     pub payload: Payload,
@@ -68,9 +80,9 @@ impl LogEvent {
     /// Helper: create an event with the current UNIX timestamp.
     pub fn new(
         sender_type: ActorType,
-        sender_id: impl Into<u64>,
+        sender_id: impl Into<ID>,
         receiver_type: ActorType,
-        receiver_id: impl Into<String>,
+        receiver_id: impl Into<ID>,
         event_type: EventType,
         channel: Channel,
         payload: Payload,
@@ -78,7 +90,7 @@ impl LogEvent {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
-            .as_secs() as i64;
+            .as_secs();
 
         Self {
             timestamp_unix: now,
@@ -92,6 +104,7 @@ impl LogEvent {
         }
     }
 
+    #[must_use]
     pub fn id_from_str(s: &str) -> u64 {
         let mut hasher = DefaultHasher::new();
         s.hash(&mut hasher);
@@ -103,14 +116,14 @@ impl LogEvent {
     /// If no logger is initialized by the final binary,
     /// this will just be a no-op (which is fine for a library).
     pub fn emit(&self) {
-        use Channel::*;
+        use Channel::{Debug, Error, Info, Trace, Warning};
 
         match self.channel {
-            Error => log::error!("{:?}", self),
-            Warning => log::warn!("{:?}", self),
-            Info => log::info!("{:?}", self),
-            Debug => log::debug!("{:?}", self),
-            Trace => log::trace!("{:?}", self),
+            Error => log::error!("{self:?}"),
+            Warning => log::warn!("{self:?}"),
+            Info => log::info!("{self:?}"),
+            Debug => log::debug!("{self:?}"),
+            Trace => log::trace!("{self:?}"),
         }
     }
 }
