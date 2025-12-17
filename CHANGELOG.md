@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2025-12-17
+
 ### Added
 - Introduced `Participant` abstraction and convenience constructors for broadcast, system, and self-directed log events
 - Added unit tests covering `LogEvent` constructors, `id_from_str`, `emit()`, and `Display`
@@ -22,25 +24,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Breaking**: `LogEvent` now carries optional sender/receiver participants instead of mandatory IDs, eliminating sentinel values
-- Clarified logging timestamp fallback and `emit()` behavior to document structured output expectations
 - **Breaking**: Removed generic `handle_orchestrator_msg()` handler from `PlanetAI` trait in favor of specialized handlers
 - **Breaking**: Renamed `start()` to `on_start()` in `PlanetAI` trait with `generator` and `combinator` parameters, now has empty default implementation
 - **Breaking**: Renamed `stop()` to `on_stop()` in `PlanetAI` trait with `generator` and `combinator` parameters, now has empty default implementation
-- `Sunray` and `InternalStateRequest` messages are now handled by dedicated methods instead of generic handler
 - **Breaking**: Added `explorer_id` to `IncomingExplorerResponse` and `OutgoingExplorerResponse` messages in `PlanetToOrchestrator` enum
 - **Breaking**: Removed `protocol::messages` module replaced by `protocols::{orchestrator_explorer, orchestrator_planet, planet_explorer}`
-- **Migration note**: update messages imports from `protocol::messages` to `protocols::{orchestrator_explorer, orchestrator_planet, planet_explorer}`
+- **Breaking**: Renamed `planet_type` to `type_` in `Planet` component for clarity
+- Clarified logging timestamp fallback and `emit()` behavior to document structured output expectations
+- `Sunray` and `InternalStateRequest` messages are now handled by dedicated methods instead of generic handler
 - Updated logging system to use `u64` for timestamps and the `ID` type for sender/receiver identifiers
 - Replaced deprecated `lazy_static!` with `LazyLock` in `Forge` component for modern Rust patterns
-- **Breaking**: Renamed `planet_type` to `type_` in `Planet` component for clarity
-- Extracted `handle_orchestrator_msg()` helper method in `Planet` component for improved code organization
-- Simplified pattern matches in protocol files to use fallthrough for `explorer_id()` and `planet_id()` extraction
 - Enhanced documentation for logging channel and log levels with detailed descriptions
+- Simplified pattern matches in protocol files to use fallthrough for `explorer_id()` and `planet_id()` extraction
+- Extracted `handle_orchestrator_msg()` helper method in `Planet` component for improved code organization
+- **Migration note**: update messages imports from `protocol::messages` to `protocols::{orchestrator_explorer, orchestrator_planet, planet_explorer}`
 
 ### Fixed
 - Fixed doc comments in `EnergyCell` to satisfy Clippy pedantic warnings
 - Resolved various Clippy pedantic warnings throughout codebase for improved code quality 
+
 ## [2.0.0-beta.1] - 2025-12-12
+
 ### Added
 - Added `GUIDELINES.md` defining library maintenance standards for v2.0+
 - Added comprehensive documentation to `Forge` component with module-level and item-level doc comments
@@ -55,17 +59,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed `Forge::new()` to properly handle mutex poisoning instead of using `unwrap()`
 
-## [1.1.0] - 2024-12-10
+## [1.1.0] - 2025-12-10
 
 ### Added
 - Derived `Debug` trait for `Sunray`, `Rocket`, `Asteroid`, and all message enums
 - Implemented `Debug` trait for `EnergyCell`
 
-## [1.0.0] - 2024-12-08
+## [1.0.0] - 2025-12-08
 
 Initial stable release.
 
-[Unreleased]: https://github.com/unitn-ap-2025/common/compare/v2.0.0-beta.1...beta
+[Unreleased]: https://github.com/unitn-ap-2025/common/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/unitn-ap-2025/common/compare/v1.1.0...v2.0.0
 [2.0.0-beta.1]: https://github.com/unitn-ap-2025/common/compare/v1.1.0...v2.0.0-beta.1
 [1.1.0]: https://github.com/unitn-ap-2025/common/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/unitn-ap-2025/common/releases/tag/v1.0.0
