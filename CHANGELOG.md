@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Introduced `Participant` abstraction and convenience constructors for broadcast, system, and self-directed log events
+- Added unit tests covering `LogEvent` constructors, `id_from_str`, `emit()`, and `Display`
 - Added `handle_sunray()` method to `PlanetAI` trait for handling sunray messages
 - Added `handle_internal_state_req()` method to `PlanetAI` trait for handling internal state requests
 - Added `on_explorer_arrival()` optional listener method with empty default implementation
@@ -19,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `MESSAGE_DIAGRAMS` file with detailed diagrams of the communication between entities
 
 ### Changed
+- **Breaking**: `LogEvent` now carries optional sender/receiver participants instead of mandatory IDs, eliminating sentinel values
+- Clarified logging timestamp fallback and `emit()` behavior to document structured output expectations
 - **Breaking**: Removed generic `handle_orchestrator_msg()` handler from `PlanetAI` trait in favor of specialized handlers
 - **Breaking**: Renamed `start()` to `on_start()` in `PlanetAI` trait with `generator` and `combinator` parameters, now has empty default implementation
 - **Breaking**: Renamed `stop()` to `on_stop()` in `PlanetAI` trait with `generator` and `combinator` parameters, now has empty default implementation
