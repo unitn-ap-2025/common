@@ -1,5 +1,5 @@
 //! Logging module for structured log events within the game application.
-//! 
+//!
 //! This module defines standardized log channels, event types, and data
 //! structures to facilitate consistent logging across different components
 //! of the game, such as planets, explorers, and the orchestrator.
