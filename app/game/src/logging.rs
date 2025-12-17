@@ -1,3 +1,7 @@
+//! # Logging infrastructure and specification
+//!
+//! Defines a common framework to make logging compatible between implementers.
+
 use std::collections::BTreeMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hash;
@@ -29,11 +33,10 @@ pub enum Channel {
     Warning,
     /// Important events, to be emitted by the Orchestrator once the last ack message in the conversation is recieved.
     /// The events this level should be used for are:
-    /// - Planet creation/destruction
-    /// - Planet/Explorer start/stop
-    /// - Explorer movement/death
+    /// - [`Planet`](`crate::components::planet`) creation,destruction,start,stop
+    /// - [`Explorer`](crate#explorer) movement,death,start/stop
     Info,
-    /// All other events that are not covered by [`Info`]
+    /// All other events that are not covered by [`Channel::Info`]
     Debug,
     /// All messages
     Trace,

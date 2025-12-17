@@ -11,19 +11,18 @@
 //! exists to make multiple implementations of shared components (Planets and Explorers)
 //! intercompatible.
 //!
-//! ## Architectural overview
-//! ### Components
-//! The system has three main actors:
-//! - **Orchestrator**: coordinates the simulation and message routing
-//! - **Planets**: stateful entities that manage energy and resources
-//! - **Explorers**: mobile agents that travel between planets and interact with them
-//!
-//! ### Protocol
-//! The protocol through which actors should communicate is defined in the `protocols` module.
-//! It includes a definition for all messages and documentation on how to use them.
-//!
-//! ### Logging
-//! Logging infrastructure and specification can be found in the `logging` module.
+//! ## Actors
+//! The system has three main actors.
+//! - ### Planets
+//!   Stateful entities that manage energy and resources.
+//!   A partial implementation is provided in the [`planet`](crate::components::planet) module.
+//!   It is meant to be extended by implementing your own [`PlanetAI`](crate::components::planet::PlanetAI).
+//! - ### Orchestrator
+//!   Coordinates the simulation and message routing.
+//!   This actor is not implemented in this crate.
+//! - ### Explorers
+//!   Mobile agents that travel between planets and interact with them.
+//!   This actor is not implemented in this crate.
 
 pub mod components;
 pub mod logging;
