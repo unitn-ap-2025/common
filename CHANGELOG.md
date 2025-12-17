@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `StopExplorerAI` message that was missing
 - Added `EnumAsInner` and `EnumDiscriminants` to the message enums to provide useful features
 - Added `utils` module with the standardized `ID` type
+- Added `MESSAGE_DIAGRAMS` file with detailed diagrams of the communication between entities
 
 ### Changed
 - **Breaking**: Removed generic `handle_orchestrator_msg()` handler from `PlanetAI` trait in favor of specialized handlers
