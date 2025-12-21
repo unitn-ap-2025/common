@@ -1,4 +1,4 @@
-[![Image Dev](https://github.com/unitn-ap-2025/common/actions/workflows/image-dev.yaml/badge.svg)](https://github.com/unitn-ap-2025/common/actions/workflows/image-dev.yaml) [![CI](https://github.com/unitn-ap-2025/common/actions/workflows/ci.yaml/badge.svg)](https://github.com/unitn-ap-2025/common/actions/workflows/ci.yaml) [![Docs](https://github.com/unitn-ap-2025/common/actions/workflows/docs.yaml/badge.svg)](https://github.com/unitn-ap-2025/common/actions/workflows/docs.yaml)
+[![Image Dev](https://github.com/unitn-ap-2025/common/actions/workflows/image-dev.yaml/badge.svg)](https://github.com/unitn-ap-2025/common/actions/workflows/image-dev.yaml) [![CI](https://github.com/unitn-ap-2025/common/actions/workflows/ci.yaml/badge.svg)](https://github.com/unitn-ap-2025/common/actions/workflows/ci.yaml) [![Docs](https://github.com/unitn-ap-2025/common/actions/workflows/docs.yaml/badge.svg)](https://github.com/unitn-ap-2025/common/actions/workflows/docs.yaml) [![Release](https://github.com/unitn-ap-2025/common/actions/workflows/release.yaml/badge.svg)](https://github.com/unitn-ap-2025/common/actions/workflows/release.yaml)
 
 # Common
 
@@ -24,6 +24,8 @@ Working in progress...
 
 ### Permission
 
+- GitHub Maintainer: The permission role "admin".
+- WGC: The permission role "maintain"
 - Team "[reviewer](https://github.com/orgs/unitn-ap-2025/teams/reviewer)": The permission role "write".
 - Team "[leader](https://github.com/orgs/unitn-ap-2025/teams/leader)": The permission role "Triage".
 - Members from other teams only have the permission to read.
@@ -142,3 +144,9 @@ By default, `just` is included in the `devcontainer`, so once you have entered t
 A commit to the `main` branch will trigger the GitHub Action called `CI`, which will do the same as what the `just ci` will do locally. This is for ensuring the quality of the code.
 
 Please use `just ci` locally and make sure all green before committing any changes. Otherwise, the [![CI](https://github.com/unitn-ap-2025/common/actions/workflows/ci.yaml/badge.svg)](https://github.com/unitn-ap-2025/common/actions/workflows/ci.yaml) might fail, and the PR will be rejected.
+
+#### Release
+
+Once a new version is ready, go to the action section of the repo and check the GitHub workflow of "Release". Find "Run workflow" and manually dispatch it.
+
+Please note that the version of the release tag (eg, `2.0.0`) needs to match the version written on `/app/game/Cargo.toml`.
