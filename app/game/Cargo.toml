@@ -4,7 +4,6 @@ description = "A package for the 2025 Group Project of the course of Advanced Pr
 documentation = "https://unitn-ap-2025.github.io/common-docs/common_game"
 edition = "2024"
 license = "MIT"
-readme = "README.md"
 repository = "https://github.com/unitn-ap-2025/common"
 version = "2.0.0"
 
