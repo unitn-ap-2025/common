@@ -1,7 +1,14 @@
 [package]
-name = "common-game"
+name = "common-ap2025"
 version = "2.0.0"
 edition = "2024"
+authors = ["AP2025"]
+description = "The common library for the development of the course advanced programming 2025 at unitn."
+license = "MIT"
+repository = "https://github.com/unitn-ap-2025/common"
+homepage = "https://github.com/unitn-ap-2025"
+documentation = "https://docs.rs/common-game"
+keywords = ["game", "common", "library"]
 
 [lib]
 path = "src/lib.rs"
@@ -9,7 +16,6 @@ path = "src/lib.rs"
 [dependencies]
 paste = "1.0.15"
 log = "0.4"
-lazy_static = "1.5.0"
 crossbeam-channel = "0.5.15"
 enum-as-inner = "0.6.1"
 strum = "0.27.2"

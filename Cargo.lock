@@ -3,12 +3,11 @@
 version = 4
 
 [[package]]
-name = "common-game"
+name = "common-ap2025"
 version = "2.0.0"
 dependencies = [
  "crossbeam-channel",
  "enum-as-inner",
- "lazy_static",
  "log",
  "paste",
  "strum",
@@ -47,12 +46,6 @@ name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
-
-[[package]]
-name = "lazy_static"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "log"
