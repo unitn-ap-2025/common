@@ -1,14 +1,15 @@
 [package]
 name = "common-ap2025"
-version = "2.0.0"
+version = "2.0.1"
 edition = "2024"
 authors = ["AP2025"]
 description = "The common library for the development of the course advanced programming 2025 at unitn."
 license = "MIT"
 repository = "https://github.com/unitn-ap-2025/common"
 homepage = "https://github.com/unitn-ap-2025"
-documentation = "https://docs.rs/common-game"
+documentation = "https://unitn-ap-2025.github.io/common-docs/common_game"
 keywords = ["game", "common", "library"]
+readme = "../../README.md"
 
 [lib]
 path = "src/lib.rs"
