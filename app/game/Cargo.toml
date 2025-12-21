@@ -1,7 +1,11 @@
 [package]
 name = "common-game"
-version = "2.0.0"
+description = "A package for the 2025 Group Project of the course of Advanced Programming at the University of Trento"
+documentation = "https://unitn-ap-2025.github.io/common-docs/common_game"
 edition = "2024"
+license = "MIT"
+repository = "https://github.com/unitn-ap-2025/common"
+version = "2.0.0"
 
 [lib]
 path = "src/lib.rs"
