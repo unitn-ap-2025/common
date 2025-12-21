@@ -8,6 +8,8 @@ This is where things actually work.
 
 The [![Docs](https://github.com/unitn-ap-2025/common/actions/workflows/docs.yaml/badge.svg)](https://github.com/unitn-ap-2025/common/actions/workflows/docs.yaml) are available at [common-docs/common_game](https://unitn-ap-2025.github.io/common-docs/common_game).
 
+The package of `common-game` is also available on [crates.io/crates/common-game](https://crates.io/crates/common-game).
+
 Working in progress...
 
 ### About the project
@@ -149,4 +151,4 @@ Please use `just ci` locally and make sure all green before committing any chang
 
 Once a new version is ready, go to the action section of the repo and check the GitHub workflow of "Release". Find "Run workflow" and manually dispatch it.
 
-Please note that the version of the release tag (eg, `2.0.0`) needs to match the version written on `/app/game/Cargo.toml`.
+Please note that the version of the [![Release](https://github.com/unitn-ap-2025/common/actions/workflows/release.yaml/badge.svg)](https://github.com/unitn-ap-2025/common/actions/workflows/release.yaml) tag (eg, `2.0.0`) needs to match the version written on `/app/game/Cargo.toml`.
