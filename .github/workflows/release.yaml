@@ -16,8 +16,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  ci:
+    uses: ./.github/workflows/ci.yaml
+
   release:
     if: github.ref == 'refs/heads/main'
+    needs: ci
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,21 +36,13 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - run: |
-          sudo apt-get update
-          sudo apt-get install -y just
-
-      - run: just ci
-
       - id: meta
         shell: bash
         run: |
           set -euo pipefail
           MANIFEST_PATH="app/game/Cargo.toml"
           PKGID="$(cargo pkgid --manifest-path "$MANIFEST_PATH")"
-          NAME="$(printf '%s' "$PKGID" | sed -E 's|.*#([^@]+)@.*|\1|')"
           VERSION="${PKGID##*@}"
-          echo "name=$NAME" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           if [ "${{ inputs.version }}" != "$VERSION" ]; then
             echo "Input version (${{ inputs.version }}) does not match manifest version ($VERSION)"
