@@ -118,7 +118,7 @@ sequenceDiagram
     O->>E: NeighborsResponse(Vec<planet_id>)
 ```
 
-## Moving to another planet (Manually from Orch)
+## Moving to another planet (Manually from Orchestrator)
 
 ```mermaid
 sequenceDiagram
@@ -129,12 +129,12 @@ sequenceDiagram
 
 
     O ->> newP: IncomingExplorerRequest(explorer_id, new_sender)
-    newP ->> O: IncomingExplorerResponse(planet_id, Result)
+    newP ->> O: IncomingExplorerResponse(planet_id, explorer_id, Result)
     O ->> currP: OutgoingExplorerRequest(explorer_id)
-    currP ->> O: OutgoingExplorerRequest(planet_id, Result)
+    currP ->> O: OutgoingExplorerResponse(planet_id, explorer_id, Result)
 
-    O ->>E: MoveToPlanet(channelof_new_planet)
-    E->> O: MovedToPlanetResult(explorer_id)
+    O ->>E: MoveToPlanet(channel_of_new_planet, planet_id)
+    E->> O: MovedToPlanetResult(explorer_id, planet_id)
 ```
 
 ## Moving to another planet (Explorer Asks)
@@ -150,12 +150,12 @@ sequenceDiagram
 
     E->>O: TravelToPlanet(explorer_id, start_planet_id, dst_planet_id)
     O ->> newP: IncomingExplorerRequest(explorer_id, new_sender)
-    newP ->> O: IncomingExplorerResponse(planet_id, Result)
+    newP ->> O: IncomingExplorerResponse(planet_id, explorer_id Result)
     O ->> currP: OutgoingExplorerRequest(explorer_id)
-    currP ->> O: OutgoingExplorerRequest(planet_id, Result)
+    currP ->> O: OutgoingExplorerResponse(planet_id, explorer_id, Result)
 
-    O ->>E: MoveToPlanet(channel_of_new_planet)
-    E->> O: MovedToPlanetResult(explorer_id)
+    O ->>E: MoveToPlanet(channel_of_new_planet, planet_id)
+    E->> O: MovedToPlanetResult(explorer_id, planet_id)
 ```
 ## Bag Content
 
