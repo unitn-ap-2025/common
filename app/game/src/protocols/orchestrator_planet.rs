@@ -20,6 +20,7 @@ use {crate::components::energy_cell::EnergyCell, crate::components::planet::Plan
 /// This enum describes all possible messages from the Orchestrator to a Planet
 #[derive(Debug, EnumAsInner, EnumDiscriminants)]
 #[strum_discriminants(name(OrchestratorToPlanetKind))]
+#[strum_discriminants(derive(Hash))]
 pub enum OrchestratorToPlanet {
     /// This variant is used to send a [Sunray] to a planet
     ///
@@ -83,6 +84,7 @@ pub enum OrchestratorToPlanet {
 /// This enum describes all possible messages from a Planet to the Orchestrator
 #[derive(Debug, EnumAsInner, EnumDiscriminants)]
 #[strum_discriminants(name(PlanetToOrchestratorKind))]
+#[strum_discriminants(derive(Hash))]
 pub enum PlanetToOrchestrator {
     /// This variant is used to acknowledge the obtained [Sunray]
     ///

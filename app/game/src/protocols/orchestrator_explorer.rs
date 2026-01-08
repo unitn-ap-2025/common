@@ -17,6 +17,7 @@ use crate::components::resource::{BasicResource, ComplexResource};
 /// This enum describes all possible messages from the Orchestrator to an Explorer
 #[derive(Debug, EnumAsInner, EnumDiscriminants)]
 #[strum_discriminants(name(OrchestratorToExplorerKind))]
+#[strum_discriminants(derive(Hash))]
 pub enum OrchestratorToExplorer {
     /// This variant is used to start an Explorer AI
     ///
@@ -55,6 +56,8 @@ pub enum OrchestratorToExplorer {
     MoveToPlanet {
         ///The optional [Sender] to the new planet, [None] if explorer cannot move to the specified planet
         sender_to_new_planet: Option<Sender<ExplorerToPlanet>>,
+        ///The ID of the planet to which the explorer will possibly move
+        planet_id: ID,
     },
     /// This variant is used to ask the ID of the Planet in which the Explorer is currently located
     ///
@@ -107,6 +110,7 @@ pub enum OrchestratorToExplorer {
 /// This enum describes all possible messages from an Explorer to the Orchestrator
 #[derive(Debug, EnumAsInner, EnumDiscriminants)]
 #[strum_discriminants(name(ExplorerToOrchestratorKind))]
+#[strum_discriminants(derive(Hash))]
 pub enum ExplorerToOrchestrator<T> {
     /// This variant is used to acknowledge the starting of the Explorer AI
     ///
@@ -142,6 +146,8 @@ pub enum ExplorerToOrchestrator<T> {
     MovedToPlanetResult {
         ///The ID of the Explorer sending the message
         explorer_id: ID,
+        ///The ID of the planet to which the explorer possibly moved
+        planet_id: ID,
     },
     /// This variant is used to send the ID of the current planet on which the Explorer is located
     ///
