@@ -94,7 +94,7 @@ pub struct Participant {
     pub actor_type: ActorType,
     /// Stable identifier for the actor.
     ///
-    /// It is suggested to use id 0 for [ActorType::Orchestrator].
+    /// It is suggested to use id 0 for [`ActorType::Orchestrator`].
     pub id: ID,
 }
 

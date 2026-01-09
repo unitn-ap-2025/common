@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Breaking**: Added `planet_id` field to `MoveToPlanet` message in `OrchestratorToExplorer` enum
+- **Breaking**: Added `planet_id` field to `MovedToPlanetResult` message in `ExplorerToOrchestrator` enum
+- Derived `Hash` trait for all message enum discriminants (`OrchestratorToExplorerKind`, `ExplorerToOrchestratorKind`, `OrchestratorToPlanetKind`, `PlanetToOrchestratorKind`, `ExplorerToPlanetKind`, `PlanetToExplorerKind`)
+- Added documentation suggesting to use ID 0 for `ActorType::Orchestrator` in logging
+
 ## [2.0.0] - 2025-12-17
 
 ### Added
