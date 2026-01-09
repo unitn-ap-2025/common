@@ -93,6 +93,8 @@ pub struct Participant {
     /// Entity role that produced or received the event.
     pub actor_type: ActorType,
     /// Stable identifier for the actor.
+    ///
+    /// It is suggested to use id 0 for [`ActorType::Orchestrator`].
     pub id: ID,
 }
 
