@@ -5,7 +5,7 @@ documentation = "https://unitn-ap-2025.github.io/common-docs/common_game"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/unitn-ap-2025/common"
-version = "3.0.0-rc.1"
+version = "3.0.0"
 
 [lib]
 path = "src/lib.rs"
