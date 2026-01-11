@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-01-11
+
 ### Added
 - **Breaking**: Added `planet_id` field to `MoveToPlanet` message in `OrchestratorToExplorer` enum
 - **Breaking**: Added `planet_id` field to `MovedToPlanetResult` message in `ExplorerToOrchestrator` enum
